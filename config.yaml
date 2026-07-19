@@ -51,6 +51,12 @@ ministries:
     enabled: false
   - slug: justice
     enabled: false
+  - slug: regional
+    enabled: false
+  - slug: transport
+    enabled: false
+  - slug: labor
+    enabled: false
   - slug: foreign-affairs
     enabled: false
   - slug: interior
