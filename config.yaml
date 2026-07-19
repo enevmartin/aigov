@@ -20,12 +20,21 @@ brains:
 # Each ministry may set `enabled: false` (declared but not running) and an
 # optional `brain:` override — two ministries can run on different brains in
 # the same cabinet session. Plain `- slug` is shorthand for enabled defaults.
+# Пълният Министерски съвет (18 министерства, проверени срещу Административния
+# регистър iisda.government.bg на 2026-07-20) + "премиерът" (government).
+# Активни са само 3 — останалите са декларирани и готови, но не горят лимит.
 ministries:
   - slug: finance
     enabled: true
     # brain: claude_code   # optional per-ministry override
   - slug: government # "премиерът" — composes joint reports from published/
     enabled: true
+  - slug: foreign-affairs
+    enabled: false
+  - slug: interior
+    enabled: false
+  - slug: defense
+    enabled: false
 
 schedules:
   # Consumed by deploy/ systemd timers; documented here for one-glance clarity.
