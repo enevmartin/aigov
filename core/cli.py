@@ -1,0 +1,167 @@
+"""aigov CLI: ``ingest | enqueue | session | publish | status``.
+
+This module is the composition root. The ``session`` command resolves the
+configured brain by importing ``brains.{config.brain}`` **by name from
+config.yaml** — the only place core code touches the brains package, with
+zero knowledge of any concrete adapter (swapping brains remains a one-line
+config change).
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, cast
+
+import yaml
+
+from core.config import AppConfig, load_config
+from core.contracts import TaskSpec, TaskType, export_json_schemas
+from core.ingest import collect_rss
+from core.publish import publish_all
+from core.queue import FileQueue, QueueState
+
+
+def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
+    """Read ``ministries/{slug}/ministry.yaml`` (declarations only)."""
+    path = config.ministry_dir(slug) / "ministry.yaml"
+    return cast("dict[str, Any]", yaml.safe_load(path.read_text(encoding="utf-8")))
+
+
+def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
+    """Collect RSS for one or all configured ministries into staging."""
+    slugs = [ministry] if ministry else config.ministries
+    staged_any = False
+    for slug in slugs:
+        declaration = _load_ministry(config, slug)
+        rss_sources = declaration.get("sources", {}).get("rss", [])
+        if not rss_sources:
+            print(f"[{slug}] no RSS sources declared, skipping")
+            continue
+        staged = collect_rss(rss_sources, config.path("data_staging"), slug)
+        if staged is None:
+            print(f"[{slug}] nothing collected")
+        else:
+            print(f"[{slug}] staged {staged.relative_to(config.root)}")
+            staged_any = True
+    return 0 if staged_any or not slugs else 1
+
+
+def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
+    """Turn staged data into a pending task carrying it as input."""
+    staging = config.path("data_staging") / ministry
+    staged_files = sorted(staging.glob("*.parquet")) if staging.is_dir() else []
+    if not staged_files:
+        print(f"[{ministry}] no staged data — run 'aigov ingest' first")
+        return 1
+
+    now = datetime.now(tz=UTC)
+    spec = TaskSpec(
+        id=f"{ministry}-{now.strftime('%Y-%m-%d-%H%M%S')}-{task_type.replace('_', '-')}",
+        ministry=ministry,
+        type=TaskType(task_type),
+        created=now,
+    )
+    schemas_dir = config.path("data_staging") / "_schemas"
+    export_json_schemas(schemas_dir)
+
+    queue = FileQueue(config.path("tasks"))
+    queue.enqueue(
+        spec,
+        input_files={f"staging/{p.name}": p.read_bytes() for p in staged_files},
+        expected_schema=(schemas_dir / "aggregates.schema.json").read_text(encoding="utf-8"),
+    )
+    for p in staged_files:  # staging is ephemeral: data now lives in the task
+        p.unlink()
+    print(f"enqueued {spec.id} with {len(staged_files)} input file(s)")
+    return 0
+
+
+def cmd_session(config: AppConfig, dry_run: bool) -> int:
+    """Run one cabinet session with the brain configured in config.yaml."""
+    brain_module = importlib.import_module(f"brains.{config.brain}")
+    run_session = brain_module.run_cabinet_session
+    results: dict[str, list[str]] = run_session(config, dry_run=dry_run)
+    for task_id in results["done"]:
+        print(f"done   {task_id}")
+    for task_id in results["failed"]:
+        print(f"FAILED {task_id}")
+    return 0 if not results["failed"] else 1
+
+
+def cmd_publish(config: AppConfig) -> int:
+    """Validate done tasks and release them to published/."""
+    results = publish_all(config)
+    for task_id in results["published"]:
+        print(f"published {task_id}")
+    for task_id in results["rejected"]:
+        print(f"REJECTED  {task_id} (see tasks/failed/{task_id}/reason.txt)")
+    return 0 if not results["rejected"] else 1
+
+
+def cmd_status(config: AppConfig) -> int:
+    """Print queue counts and the published table of contents."""
+    queue = FileQueue(config.path("tasks"))
+    for state in QueueState.ALL:
+        tasks = queue.list_tasks(state)
+        listing = f" — {', '.join(tasks)}" if tasks else ""
+        print(f"{state:8} {len(tasks)}{listing}")
+
+    published = config.path("published")
+    ministries = (
+        sorted(p.name for p in published.iterdir() if p.is_dir()) if published.is_dir() else []
+    )
+    for slug in ministries:
+        dates = sorted(p.name for p in (published / slug).iterdir() if p.is_dir())
+        latest = dates[-1] if dates else "—"
+        print(f"published/{slug}: {len(dates)} day(s), latest {latest}")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Entry point (``aigov`` script)."""
+    parser = argparse.ArgumentParser(prog="aigov", description="aigov.bg pipeline operations")
+    parser.add_argument(
+        "--root", type=Path, default=Path.cwd(), help="repo root (default: current dir)"
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_ingest = sub.add_parser("ingest", help="collect RSS/data into staging")
+    p_ingest.add_argument("--ministry", help="one ministry slug (default: all)")
+
+    p_enqueue = sub.add_parser("enqueue", help="turn staged data into a pending task")
+    p_enqueue.add_argument("--ministry", required=True)
+    p_enqueue.add_argument(
+        "--type",
+        default=TaskType.NEWS_DIGEST.value,
+        choices=[t.value for t in TaskType],
+        dest="task_type",
+    )
+
+    p_session = sub.add_parser("session", help="run a cabinet session (configured brain)")
+    p_session.add_argument(
+        "--dry-run", action="store_true", help="use the deterministic fake brain (no tokens)"
+    )
+
+    sub.add_parser("publish", help="validate done tasks and release to published/")
+    sub.add_parser("status", help="queue and published overview")
+
+    args = parser.parse_args(argv)
+    config = load_config(args.root.resolve())
+
+    if args.command == "ingest":
+        return cmd_ingest(config, args.ministry)
+    if args.command == "enqueue":
+        return cmd_enqueue(config, args.ministry, args.task_type)
+    if args.command == "session":
+        return cmd_session(config, args.dry_run)
+    if args.command == "publish":
+        return cmd_publish(config)
+    return cmd_status(config)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
