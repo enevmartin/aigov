@@ -5,10 +5,17 @@ goes to ``failed/`` with a recorded reason — it never becomes public.
 """
 
 from core.publish.publisher import (
+    cabinet_roster,
     ministry_names,
     publish_all,
     rebuild_index,
     validate_output,
 )
 
-__all__ = ["ministry_names", "publish_all", "rebuild_index", "validate_output"]
+__all__ = [
+    "cabinet_roster",
+    "ministry_names",
+    "publish_all",
+    "rebuild_index",
+    "validate_output",
+]

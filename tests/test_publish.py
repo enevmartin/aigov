@@ -116,7 +116,27 @@ class TestRebuildIndex:
         assert json.loads(target.read_text(encoding="utf-8")) == {
             "ministries": {},
             "names": {},
+            "cabinet": [],
         }
+
+    def test_cabinet_roster_travels_in_index(self, config: AppConfig) -> None:
+        """The site shows not-yet-active ministers — the roster must be public."""
+        ministry = config.ministry_dir("finance")
+        ministry.mkdir(parents=True)
+        (ministry / "ministry.yaml").write_text(
+            'name: "Министерство на финансите"\nslug: finance\n'
+            'minister_persona:\n  име: "Финвест"\n  стил: "спокоен"\n',
+            encoding="utf-8",
+        )
+        run_task_through_fake_brain(config)
+        publish_all(config)
+        index = json.loads(
+            (config.path("published") / "index.json").read_text(encoding="utf-8")
+        )
+        [entry] = index["cabinet"]
+        assert entry["slug"] == "finance"
+        assert entry["persona"] == "Финвест"
+        assert entry["enabled"] is True
 
     def test_names_come_from_declarations(self, config: AppConfig, tmp_path: Path) -> None:
         ministry = config.ministry_dir("finance")

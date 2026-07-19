@@ -18,9 +18,18 @@ export interface IndexEntry {
   artifacts: string[];
 }
 
+export interface CabinetMember {
+  slug: string;
+  name: string;
+  persona: string;
+  persona_style: string;
+  enabled: boolean;
+}
+
 export interface PublishedIndex {
   ministries: Record<string, IndexEntry[]>;
   names: Record<string, string>;
+  cabinet: CabinetMember[];
 }
 
 export interface Source {
@@ -35,6 +44,11 @@ export interface ReportMeta {
   title: string;
   summary: string;
   sources: Source[];
+  /** crisis_brief only */
+  confidence?: "low" | "medium" | "high";
+  trigger_keywords?: string[];
+  /** joint_report only */
+  contributors?: string[];
 }
 
 export interface Series {
@@ -64,27 +78,88 @@ export interface NewsDigest {
   items: NewsItem[];
 }
 
+export interface SignalStats {
+  ministry: string;
+  date: string;
+  total: number;
+  categories: { category: string; count: number }[];
+  note?: string | null;
+}
+
 export interface PublishedDay {
   slug: string;
   date: string;
-  report: ReportMeta;
-  reportHtml: string;
-  aggregates: Aggregates;
+  report: ReportMeta | null;
+  reportHtml: string | null;
+  aggregates: Aggregates | null;
   news: NewsDigest | null;
+  signals: SignalStats | null;
+}
+
+export interface SourceHealth {
+  ministry: string;
+  name: string;
+  url: string;
+  status: "ok" | "degraded";
+  consecutive_failures?: number;
+  last_ok?: string | null;
+  note?: string | null;
+}
+
+export interface HealthEvent {
+  timestamp: string;
+  kind: string;
+  ministry?: string | null;
+  message: string;
+}
+
+export interface SystemHealth {
+  generated: string;
+  sources: SourceHealth[];
+  events: HealthEvent[];
+  last_session?: {
+    timestamp?: string;
+    done?: number;
+    failed?: number;
+    failed_ids?: string[];
+  } | null;
+}
+
+function readJson<T>(file: string): T | null {
+  return fs.existsSync(file)
+    ? (JSON.parse(fs.readFileSync(file, "utf-8")) as T)
+    : null;
 }
 
 /** Read published/index.json — the table of contents. */
 export function loadIndex(): PublishedIndex {
-  const indexPath = path.join(PUBLISHED_ROOT, "index.json");
-  if (!fs.existsSync(indexPath)) {
-    return { ministries: {}, names: {} };
-  }
-  return JSON.parse(fs.readFileSync(indexPath, "utf-8")) as PublishedIndex;
+  const index = readJson<Partial<PublishedIndex>>(path.join(PUBLISHED_ROOT, "index.json"));
+  return {
+    ministries: index?.ministries ?? {},
+    names: index?.names ?? {},
+    cabinet: index?.cabinet ?? [],
+  };
+}
+
+/** The full cabinet; falls back to published slugs when no roster exists. */
+export function loadCabinet(index: PublishedIndex): CabinetMember[] {
+  if (index.cabinet.length > 0) return index.cabinet;
+  return Object.keys(index.ministries).map((slug) => ({
+    slug,
+    name: index.names[slug] ?? slug,
+    persona: "",
+    persona_style: "",
+    enabled: true,
+  }));
 }
 
 /** Display name for a ministry slug (falls back to the slug). */
 export function ministryName(index: PublishedIndex, slug: string): string {
-  return index.names[slug] ?? slug;
+  return (
+    index.names[slug] ??
+    index.cabinet.find((m) => m.slug === slug)?.name ??
+    slug
+  );
 }
 
 /** Sorted dates (newest first) with published artifacts for a ministry. */
@@ -95,27 +170,27 @@ export function datesFor(index: PublishedIndex, slug: string): string[] {
     .reverse();
 }
 
-/** Load one published day of one ministry (report + aggregates + news). */
+/** Load one published day of one ministry (whatever artifacts it has). */
 export function loadDay(slug: string, date: string): PublishedDay {
   const dayDir = path.join(PUBLISHED_ROOT, slug, date);
-  const raw = fs.readFileSync(path.join(dayDir, "report.md"), "utf-8");
-  const parsed = matter(raw);
-  const aggregates = JSON.parse(
-    fs.readFileSync(path.join(dayDir, "aggregates.json"), "utf-8"),
-  ) as Aggregates;
 
-  const newsPath = path.join(dayDir, "news.json");
-  const news = fs.existsSync(newsPath)
-    ? (JSON.parse(fs.readFileSync(newsPath, "utf-8")) as NewsDigest)
-    : null;
+  let report: ReportMeta | null = null;
+  let reportHtml: string | null = null;
+  const reportPath = path.join(dayDir, "report.md");
+  if (fs.existsSync(reportPath)) {
+    const parsed = matter(fs.readFileSync(reportPath, "utf-8"));
+    report = parsed.data as ReportMeta;
+    reportHtml = marked.parse(parsed.content, { async: false }) as string;
+  }
 
   return {
     slug,
     date,
-    report: parsed.data as ReportMeta,
-    reportHtml: marked.parse(parsed.content, { async: false }) as string,
-    aggregates,
-    news,
+    report,
+    reportHtml,
+    aggregates: readJson<Aggregates>(path.join(dayDir, "aggregates.json")),
+    news: readJson<NewsDigest>(path.join(dayDir, "news.json")),
+    signals: readJson<SignalStats>(path.join(dayDir, "signals.json")),
   };
 }
 
@@ -123,6 +198,11 @@ export function loadDay(slug: string, date: string): PublishedDay {
 export function loadLatest(index: PublishedIndex, slug: string): PublishedDay | null {
   const [latest] = datesFor(index, slug);
   return latest ? loadDay(slug, latest) : null;
+}
+
+/** published/system/health.json, or null before the first ingest/session. */
+export function loadHealth(): SystemHealth | null {
+  return readJson<SystemHealth>(path.join(PUBLISHED_ROOT, "system", "health.json"));
 }
 
 /** Initials for the avatar placeholder, e.g. "Министерство на финансите" -> "МФ". */

@@ -1,0 +1,197 @@
+---
+import Base from "../layouts/Base.astro";
+import { loadHealth, loadIndex, ministryName } from "../lib/published";
+
+const health = loadHealth();
+const index = loadIndex();
+const degraded = health?.sources.filter((s) => s.status === "degraded") ?? [];
+const okCount = (health?.sources.length ?? 0) - degraded.length;
+const events = [...(health?.events ?? [])].reverse().slice(0, 30);
+
+function fmt(ts?: string | null): string {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" });
+}
+---
+
+<Base title="Система" description="Състояние на системата aigov.bg: източници, сесии, събития.">
+  <h1>Състояние на системата</h1>
+  <p class="lead">
+    Тази страница се генерира от <code>health.json</code> — воденият от ядрото
+    (без AI) дневник на източниците, сесиите и инцидентите.
+  </p>
+
+  {!health && (
+    <div class="card">
+      <p class="muted">Още няма записани данни — дневникът се създава при първия ingest.</p>
+    </div>
+  )}
+
+  {health && (
+    <>
+      <div class="stat-row">
+        <div class="card stat">
+          <span class="stat-value">{okCount}</span>
+          <span class="muted">работещи източника</span>
+        </div>
+        <div class="card stat">
+          <span class="stat-value" class:list={[degraded.length > 0 && "bad"]}>
+            {degraded.length}
+          </span>
+          <span class="muted">влошени източника</span>
+        </div>
+        <div class="card stat">
+          <span class="stat-value">{health.last_session?.done ?? "—"}</span>
+          <span class="muted">задачи в последната сесия</span>
+        </div>
+        <div class="card stat">
+          <span class="stat-value" class:list={[(health.last_session?.failed ?? 0) > 0 && "bad"]}>
+            {health.last_session?.failed ?? "—"}
+          </span>
+          <span class="muted">провалени задачи</span>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Източници</h2>
+        {health.sources.length === 0 && <p class="muted">Няма записани източници.</p>}
+        {health.sources.length > 0 && (
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Министерство</th>
+                  <th>Източник</th>
+                  <th>Статус</th>
+                  <th>Поредни грешки</th>
+                  <th>Последен успех</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.sources.map((s) => (
+                  <tr>
+                    <td>{ministryName(index, s.ministry)}</td>
+                    <td><a href={s.url} rel="noopener">{s.name}</a></td>
+                    <td>
+                      <span class={`status status-${s.status}`}>
+                        {s.status === "ok" ? "работи" : "влошен"}
+                      </span>
+                    </td>
+                    <td>{s.consecutive_failures ?? 0}</td>
+                    <td>{fmt(s.last_ok)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section class="card">
+        <h2>Последна сесия на кабинета</h2>
+        {health.last_session ? (
+          <p>
+            {fmt(health.last_session.timestamp)} — завършени:{" "}
+            <strong>{health.last_session.done}</strong>, провалени:{" "}
+            <strong>{health.last_session.failed}</strong>
+            {health.last_session.failed_ids?.length
+              ? ` (${health.last_session.failed_ids.join(", ")})`
+              : ""}
+          </p>
+        ) : (
+          <p class="muted">Още няма проведена сесия.</p>
+        )}
+      </section>
+
+      <section class="card">
+        <h2>Събития</h2>
+        {events.length === 0 && <p class="muted">Няма записани събития.</p>}
+        <ul class="event-list">
+          {events.map((e) => (
+            <li>
+              <span class="muted">{fmt(e.timestamp)}</span>
+              <span class={`status ${e.kind === "data_quality_alert" || e.kind === "task_failed" ? "status-degraded" : "status-ok"}`}>
+                {e.kind}
+              </span>
+              <span>{e.message}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <p class="muted">Генерирано: {fmt(health.generated)}</p>
+    </>
+  )}
+</Base>
+
+<style>
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-value.bad {
+    color: #9c2b2b;
+  }
+  section.card {
+    margin-bottom: 20px;
+  }
+  section.card h2 {
+    margin-top: 0;
+    font-size: 19px;
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .status {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 1px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .status-ok {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .status-degraded {
+    background: #fbeaea;
+    color: #9c2b2b;
+  }
+  .event-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+    font-size: 14px;
+  }
+  .event-list li {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+</style>

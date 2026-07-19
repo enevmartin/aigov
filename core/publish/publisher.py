@@ -131,7 +131,7 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         results["published"].append(task_id)
 
     if results["published"]:
-        rebuild_index(published_root, ministry_names(config))
+        rebuild_index(published_root, ministry_names(config), cabinet_roster(config))
     return results
 
 
@@ -141,21 +141,46 @@ def ministry_names(config: AppConfig) -> dict[str, str]:
     The site reads ONLY published/ (invariant #2), so display names must
     travel inside index.json; the core reads the declarations on its behalf.
     """
-    names: dict[str, str] = {}
+    return {str(entry["slug"]): str(entry["name"]) for entry in cabinet_roster(config)}
+
+
+def cabinet_roster(config: AppConfig) -> list[dict[str, object]]:
+    """The full cabinet for the site: every declared ministry, active or not.
+
+    The site may read only published/, but the Кабинет page must show
+    ministers that have not published yet ("подготвя се") — so the roster
+    travels inside index.json, written by the core from the declarations.
+    """
+    roster: list[dict[str, object]] = []
     for entry in config.ministries:
         declaration_path = config.ministry_dir(entry.slug) / "ministry.yaml"
-        if declaration_path.is_file():
-            declaration = yaml.safe_load(declaration_path.read_text(encoding="utf-8"))
-            names[entry.slug] = str(declaration.get("name", entry.slug))
-    return names
+        if not declaration_path.is_file():
+            continue
+        declaration = yaml.safe_load(declaration_path.read_text(encoding="utf-8"))
+        persona = declaration.get("minister_persona", {})
+        roster.append(
+            {
+                "slug": entry.slug,
+                "name": str(declaration.get("name", entry.slug)),
+                "persona": str(persona.get("име", "")),
+                "persona_style": str(persona.get("стил", "")),
+                "enabled": entry.enabled,
+            }
+        )
+    return roster
 
 
-def rebuild_index(published_root: Path, names: dict[str, str] | None = None) -> Path:
+def rebuild_index(
+    published_root: Path,
+    names: dict[str, str] | None = None,
+    cabinet: list[dict[str, object]] | None = None,
+) -> Path:
     """Regenerate ``published/index.json`` from the directory tree.
 
     The site uses this as its table of contents: per ministry, the sorted
-    list of publication dates, which artifacts each date has, and the
-    ministry display names.
+    list of publication dates, which artifacts each date has, the ministry
+    display names, and the full cabinet roster (incl. not-yet-active
+    ministries for the "подготвя се" cards).
     """
     index: dict[str, list[dict[str, object]]] = {}
     if published_root.is_dir():
@@ -173,6 +198,7 @@ def rebuild_index(published_root: Path, names: dict[str, str] | None = None) -> 
     payload = {
         "ministries": index,
         "names": {slug: (names or {}).get(slug, slug) for slug in index},
+        "cabinet": cabinet or [],
     }
     target.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

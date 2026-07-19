@@ -1,22 +1,44 @@
 ---
-/** One published day of one ministry: report, charts, news digest, sources. */
+/** One published day of one ministry: report, charts, news, signals. */
 import type { PublishedDay } from "../lib/published";
 
 interface Props {
   day: PublishedDay;
+  names?: Record<string, string>;
 }
-const { day } = Astro.props;
-const chartData = JSON.stringify(day.aggregates.series);
+const { day, names = {} } = Astro.props;
+const chartData = JSON.stringify(day.aggregates?.series ?? []);
+const confidenceLabel: Record<string, string> = {
+  low: "ниска увереност",
+  medium: "средна увереност",
+  high: "висока увереност",
+};
 ---
 
 <article>
   <header class="report-header">
     <span class="tag">{day.date}</span>
-    <h1>{day.report.title}</h1>
-    <p class="lead">{day.report.summary}</p>
+    {day.report?.confidence && (
+      <span class={`tag crisis crisis-${day.report.confidence}`}>
+        Извънреден брифинг · {confidenceLabel[day.report.confidence]}
+      </span>
+    )}
+    <h1>{day.report?.title ?? "Публикувани данни"}</h1>
+    {day.report && <p class="lead">{day.report.summary}</p>}
+    {day.report?.trigger_keywords && (
+      <p class="muted trigger-line">
+        Задействан от думите: {day.report.trigger_keywords.join(", ")}
+      </p>
+    )}
+    {day.report?.contributors && (
+      <p class="muted trigger-line">
+        Съвместен доклад по отчети на:{" "}
+        {day.report.contributors.map((slug) => names[slug] ?? slug).join(" · ")}
+      </p>
+    )}
   </header>
 
-  {day.aggregates.series.length > 0 && (
+  {day.aggregates && day.aggregates.series.length > 0 && (
     <section class="charts card">
       <h2>Данните</h2>
       <div class="chart-grid" data-charts={chartData}>
@@ -34,7 +56,26 @@ const chartData = JSON.stringify(day.aggregates.series);
     </section>
   )}
 
-  <section class="report-body card" set:html={day.reportHtml} />
+  {day.reportHtml && <section class="report-body card" set:html={day.reportHtml} />}
+
+  {day.signals && (
+    <section class="card">
+      <h2>Сигнали от граждани (агрегирано)</h2>
+      <p class="muted">
+        Само анонимизирана статистика — суровите сигнали никога не се публикуват.
+      </p>
+      <ul class="signal-list">
+        {day.signals.categories.map((c) => (
+          <li>
+            <span>{c.category}</span>
+            <strong>{c.count}</strong>
+          </li>
+        ))}
+      </ul>
+      <p>Общо: <strong>{day.signals.total}</strong></p>
+      {day.signals.note && <p class="muted">{day.signals.note}</p>}
+    </section>
+  )}
 
   {day.news && (
     <section class="news card">
@@ -54,17 +95,19 @@ const chartData = JSON.stringify(day.aggregates.series);
     </section>
   )}
 
-  <section class="sources">
-    <h2>Източници на отчета</h2>
-    <ul>
-      {day.report.sources.map((source) => (
-        <li>
-          <a href={source.url} rel="noopener">{source.title}</a>
-          <span class="muted"> — извлечено {source.retrieved}</span>
-        </li>
-      ))}
-    </ul>
-  </section>
+  {day.report && (
+    <section class="sources">
+      <h2>Източници на отчета</h2>
+      <ul>
+        {day.report.sources.map((source) => (
+          <li>
+            <a href={source.url} rel="noopener">{source.title}</a>
+            <span class="muted"> — извлечено {source.retrieved}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
 </article>
 
 <script>
@@ -111,11 +154,22 @@ const chartData = JSON.stringify(day.aggregates.series);
   .report-header h1 {
     margin-top: 10px;
   }
+  .tag.crisis {
+    margin-left: 8px;
+    background: #fbeaea;
+    color: #9c2b2b;
+  }
+  .tag.crisis-high {
+    background: #f8d7d7;
+  }
+  .trigger-line {
+    margin: 4px 0 0;
+    font-size: 14px;
+  }
   section.card {
     margin-bottom: 24px;
   }
-  .charts h2,
-  .news h2 {
+  section.card h2 {
     margin-top: 0;
   }
   .chart-grid {
@@ -134,12 +188,23 @@ const chartData = JSON.stringify(day.aggregates.series);
     font-size: 13px;
     margin-top: 6px;
   }
-  .news-list {
+  .news-list,
+  .signal-list {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
     gap: 18px;
+  }
+  .signal-list {
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .signal-list li {
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 6px;
   }
   .news-title {
     font-weight: 600;

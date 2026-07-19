@@ -1,15 +1,14 @@
 ---
 import Base from "../layouts/Base.astro";
-import { initials, loadIndex, loadLatest, ministryName } from "../lib/published";
+import { initials, loadCabinet, loadIndex, loadLatest } from "../lib/published";
 
 const index = loadIndex();
-const cabinet = Object.keys(index.ministries)
-  .sort()
-  .map((slug) => ({
-    slug,
-    name: ministryName(index, slug),
-    latest: loadLatest(index, slug),
-  }));
+const cabinet = loadCabinet(index).map((member) => ({
+  ...member,
+  latest: loadLatest(index, member.slug),
+}));
+const active = cabinet.filter((m) => m.enabled || m.latest);
+const preparing = cabinet.filter((m) => !m.enabled && !m.latest);
 ---
 
 <Base title="Кабинет">
@@ -26,24 +25,49 @@ const cabinet = Object.keys(index.ministries)
   )}
 
   <div class="cabinet-grid">
-    {cabinet.map(({ slug, name, latest }) => (
-      <a class="card minister-card" href={`/${slug}/`}>
-        <div class="avatar" aria-hidden="true">{initials(name)}</div>
+    {active.map((member) => (
+      <a class="card minister-card" href={`/${member.slug}/`}>
+        <div class="avatar" aria-hidden="true">{initials(member.name)}</div>
         <div class="minister-info">
-          <h2>{name}</h2>
-          {latest ? (
+          <h2>{member.name}</h2>
+          {member.persona && (
+            <p class="persona muted">AI министър „{member.persona}" · {member.persona_style}</p>
+          )}
+          {member.latest?.report ? (
             <>
-              <p class="report-title">{latest.report.title}</p>
-              <p class="muted summary">{latest.report.summary}</p>
-              <span class="tag">Отчет от {latest.date}</span>
+              <p class="report-title">{member.latest.report.title}</p>
+              <span class="tag">Отчет от {member.latest.date}</span>
             </>
           ) : (
-            <p class="muted">Няма публикуван отчет.</p>
+            <span class="tag preparing-tag">активен · очаква първи отчет</span>
           )}
         </div>
       </a>
     ))}
   </div>
+
+  {preparing.length > 0 && (
+    <>
+      <h2 class="section-title">Подготвят се</h2>
+      <p class="muted">
+        Декларирани министерства с проверени източници, които още не са активирани.
+      </p>
+      <div class="cabinet-grid">
+        {preparing.map((member) => (
+          <div class="card minister-card inactive">
+            <div class="avatar" aria-hidden="true">{initials(member.name)}</div>
+            <div class="minister-info">
+              <h2>{member.name}</h2>
+              {member.persona && (
+                <p class="persona muted">AI министър „{member.persona}"</p>
+              )}
+              <span class="tag preparing-tag">подготвя се</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
 </Base>
 
 <style>
@@ -52,6 +76,9 @@ const cabinet = Object.keys(index.ministries)
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 20px;
   }
+  .section-title {
+    margin: 40px 0 4px;
+  }
   .minister-card {
     display: flex;
     gap: 18px;
@@ -59,8 +86,11 @@ const cabinet = Object.keys(index.ministries)
     color: inherit;
     transition: border-color 0.15s ease;
   }
-  .minister-card:hover {
+  a.minister-card:hover {
     border-color: var(--accent);
+  }
+  .minister-card.inactive {
+    opacity: 0.75;
   }
   .avatar {
     flex: 0 0 56px;
@@ -71,18 +101,26 @@ const cabinet = Object.keys(index.ministries)
     display: grid;
     place-items: center;
     font-weight: 700;
-    font-size: 20px;
+    font-size: 18px;
+  }
+  .inactive .avatar {
+    background: var(--muted);
   }
   .minister-info h2 {
-    margin: 0 0 6px;
-    font-size: 19px;
+    margin: 0 0 4px;
+    font-size: 18px;
+  }
+  .persona {
+    margin: 0 0 8px;
+    font-size: 13px;
   }
   .report-title {
-    margin: 0 0 4px;
+    margin: 0 0 8px;
     font-weight: 600;
-  }
-  .summary {
-    margin: 0 0 12px;
     font-size: 14px;
+  }
+  .preparing-tag {
+    background: #eee9df;
+    color: var(--muted);
   }
 </style>

@@ -1,16 +1,28 @@
 ---
 import Base from "../../layouts/Base.astro";
 import DayView from "../../components/DayView.astro";
-import { datesFor, loadIndex, loadLatest, ministryName } from "../../lib/published";
+import {
+  datesFor,
+  loadCabinet,
+  loadIndex,
+  loadLatest,
+  ministryName,
+} from "../../lib/published";
 
 export function getStaticPaths() {
   const index = loadIndex();
-  return Object.keys(index.ministries).map((slug) => ({ params: { ministry: slug } }));
+  // every declared ministry gets a page, published or not
+  const slugs = new Set([
+    ...loadCabinet(index).map((m) => m.slug),
+    ...Object.keys(index.ministries),
+  ]);
+  return [...slugs].map((slug) => ({ params: { ministry: slug } }));
 }
 
 const { ministry } = Astro.params;
 const index = loadIndex();
 const name = ministryName(index, ministry!);
+const member = index.cabinet.find((m) => m.slug === ministry);
 const day = loadLatest(index, ministry!);
 const dates = datesFor(index, ministry!);
 ---
@@ -20,11 +32,26 @@ const dates = datesFor(index, ministry!);
     <a href="/">Кабинет</a> / {name}
   </nav>
 
-  {day ? <DayView day={day} /> : <p class="muted">Няма публикуван отчет.</p>}
+  {day ? (
+    <DayView day={day} names={index.names} />
+  ) : (
+    <section class="card empty-state">
+      <h1>{name}</h1>
+      {member?.persona && (
+        <p class="muted">AI министър „{member.persona}" · {member.persona_style}</p>
+      )}
+      <p>
+        Още няма публикувани отчети.
+        {member?.enabled
+          ? " Министерството е активно — първият отчет идва след следващата сесия на кабинета."
+          : " Министерството е декларирано и се подготвя за активиране."}
+      </p>
+    </section>
+  )}
 
   {dates.length > 1 && (
     <section class="archive-links">
-      <h2>Предишни отчети</h2>
+      <h2>Предишни публикации</h2>
       <ul>
         {dates.slice(1).map((date) => (
           <li><a href={`/${ministry}/${date}/`}>{date}</a></li>
@@ -41,5 +68,8 @@ const dates = datesFor(index, ministry!);
   }
   .archive-links h2 {
     font-size: 17px;
+  }
+  .empty-state h1 {
+    margin-top: 0;
   }
 </style>
