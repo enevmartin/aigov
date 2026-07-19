@@ -1,0 +1,59 @@
+---
+import Base from "../layouts/Base.astro";
+import { datesFor, loadIndex, ministryName } from "../lib/published";
+
+const index = loadIndex();
+const ministries = Object.keys(index.ministries)
+  .sort()
+  .map((slug) => ({ slug, name: ministryName(index, slug), dates: datesFor(index, slug) }));
+---
+
+<Base title="Архив">
+  <h1>Архив</h1>
+  <p class="lead">Всички публикувани отчети по министерство и дата.</p>
+
+  {ministries.length === 0 && <p class="muted">Още няма публикации.</p>}
+
+  {ministries.map(({ slug, name, dates }) => (
+    <section class="card archive-block">
+      <h2><a href={`/${slug}/`}>{name}</a></h2>
+      <ul class="date-list">
+        {dates.map((date) => (
+          <li><a href={`/${slug}/${date}/`}>{date}</a></li>
+        ))}
+      </ul>
+    </section>
+  ))}
+</Base>
+
+<style>
+  .archive-block {
+    margin-bottom: 20px;
+  }
+  .archive-block h2 {
+    margin-top: 0;
+    font-size: 20px;
+  }
+  .archive-block h2 a {
+    text-decoration: none;
+    color: inherit;
+  }
+  .date-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .date-list a {
+    display: inline-block;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 12px;
+    text-decoration: none;
+  }
+  .date-list a:hover {
+    border-color: var(--accent);
+  }
+</style>

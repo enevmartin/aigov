@@ -56,6 +56,8 @@ class TestPublishAll:
         )
         assert index["ministries"]["finance"][0]["date"] == "2026-07-19"
         assert "report.md" in index["ministries"]["finance"][0]["artifacts"]
+        # no ministries/ declarations in this fixture -> name falls back to slug
+        assert index["names"]["finance"] == "finance"
 
     def test_invalid_output_rejected_with_reason(self, config: AppConfig) -> None:
         queue = run_task_through_fake_brain(config)
@@ -111,4 +113,20 @@ class TestPublishAll:
 class TestRebuildIndex:
     def test_empty_tree_gives_empty_index(self, tmp_path: Path) -> None:
         target = rebuild_index(tmp_path / "published")
-        assert json.loads(target.read_text(encoding="utf-8")) == {"ministries": {}}
+        assert json.loads(target.read_text(encoding="utf-8")) == {
+            "ministries": {},
+            "names": {},
+        }
+
+    def test_names_come_from_declarations(self, config: AppConfig, tmp_path: Path) -> None:
+        ministry = config.ministry_dir("finance")
+        ministry.mkdir(parents=True)
+        (ministry / "ministry.yaml").write_text(
+            'name: "Министерство на финансите"\nslug: finance\n', encoding="utf-8"
+        )
+        run_task_through_fake_brain(config)
+        publish_all(config)
+        index = json.loads(
+            (config.path("published") / "index.json").read_text(encoding="utf-8")
+        )
+        assert index["names"]["finance"] == "Министерство на финансите"

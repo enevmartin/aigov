@@ -1,0 +1,160 @@
+---
+/** One published day of one ministry: report, charts, news digest, sources. */
+import type { PublishedDay } from "../lib/published";
+
+interface Props {
+  day: PublishedDay;
+}
+const { day } = Astro.props;
+const chartData = JSON.stringify(day.aggregates.series);
+---
+
+<article>
+  <header class="report-header">
+    <span class="tag">{day.date}</span>
+    <h1>{day.report.title}</h1>
+    <p class="lead">{day.report.summary}</p>
+  </header>
+
+  {day.aggregates.series.length > 0 && (
+    <section class="charts card">
+      <h2>Данните</h2>
+      <div class="chart-grid" data-charts={chartData}>
+        {day.aggregates.series.map((series, i) => (
+          <figure>
+            <div class="chart" data-chart-index={i}></div>
+            <figcaption class="muted">
+              {series.name} ({series.unit}) · източник:
+              <a href={series.source.url} rel="noopener">{series.source.title}</a>,
+              извлечено {series.source.retrieved}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <section class="report-body card" set:html={day.reportHtml} />
+
+  {day.news && (
+    <section class="news card">
+      <h2>Новини на деня</h2>
+      <ul class="news-list">
+        {day.news.items.map((item) => (
+          <li>
+            <p class="news-title">{item.title}</p>
+            <p class="muted">{item.summary}</p>
+            <p class="news-source">
+              <a href={item.source.url} rel="noopener">{item.source.title}</a>
+              · извлечено {item.source.retrieved}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+
+  <section class="sources">
+    <h2>Източници на отчета</h2>
+    <ul>
+      {day.report.sources.map((source) => (
+        <li>
+          <a href={source.url} rel="noopener">{source.title}</a>
+          <span class="muted"> — извлечено {source.retrieved}</span>
+        </li>
+      ))}
+    </ul>
+  </section>
+</article>
+
+<script>
+  import * as echarts from "echarts";
+
+  interface Series {
+    name: string;
+    unit: string;
+    labels: string[];
+    values: number[];
+  }
+
+  const grid = document.querySelector<HTMLElement>("[data-charts]");
+  if (grid) {
+    const series = JSON.parse(grid.dataset.charts ?? "[]") as Series[];
+    for (const el of grid.querySelectorAll<HTMLElement>(".chart")) {
+      const s = series[Number(el.dataset.chartIndex)];
+      if (!s) continue;
+      const chart = echarts.init(el);
+      chart.setOption({
+        color: ["#0f5c46"],
+        grid: { left: 48, right: 16, top: 24, bottom: 32 },
+        tooltip: { trigger: "axis" },
+        xAxis: { type: "category", data: s.labels },
+        yAxis: { type: "value", name: s.unit },
+        series: [
+          {
+            name: s.name,
+            type: s.labels.length > 1 ? "line" : "bar",
+            data: s.values,
+            smooth: true,
+          },
+        ],
+      });
+      window.addEventListener("resize", () => chart.resize());
+    }
+  }
+</script>
+
+<style>
+  .report-header {
+    margin-bottom: 24px;
+  }
+  .report-header h1 {
+    margin-top: 10px;
+  }
+  section.card {
+    margin-bottom: 24px;
+  }
+  .charts h2,
+  .news h2 {
+    margin-top: 0;
+  }
+  .chart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .chart {
+    width: 100%;
+    height: 280px;
+  }
+  figure {
+    margin: 0;
+  }
+  figcaption {
+    font-size: 13px;
+    margin-top: 6px;
+  }
+  .news-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 18px;
+  }
+  .news-title {
+    font-weight: 600;
+    margin: 0 0 2px;
+  }
+  .news-list p {
+    margin: 0;
+  }
+  .news-source {
+    font-size: 13px;
+  }
+  .sources h2 {
+    font-size: 17px;
+  }
+  .sources ul {
+    padding-left: 20px;
+  }
+</style>

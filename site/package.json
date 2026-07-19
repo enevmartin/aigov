@@ -1,0 +1,18 @@
+{
+  "name": "aigov-site",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "aigov.bg static dashboard — reads ../published/ only",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "astro": "^5.0.0",
+    "echarts": "^5.5.0",
+    "gray-matter": "^4.0.3",
+    "marked": "^12.0.0"
+  }
+}

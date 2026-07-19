@@ -1,0 +1,45 @@
+---
+import Base from "../../layouts/Base.astro";
+import DayView from "../../components/DayView.astro";
+import { datesFor, loadIndex, loadLatest, ministryName } from "../../lib/published";
+
+export function getStaticPaths() {
+  const index = loadIndex();
+  return Object.keys(index.ministries).map((slug) => ({ params: { ministry: slug } }));
+}
+
+const { ministry } = Astro.params;
+const index = loadIndex();
+const name = ministryName(index, ministry!);
+const day = loadLatest(index, ministry!);
+const dates = datesFor(index, ministry!);
+---
+
+<Base title={name}>
+  <nav class="crumbs muted">
+    <a href="/">Кабинет</a> / {name}
+  </nav>
+
+  {day ? <DayView day={day} /> : <p class="muted">Няма публикуван отчет.</p>}
+
+  {dates.length > 1 && (
+    <section class="archive-links">
+      <h2>Предишни отчети</h2>
+      <ul>
+        {dates.slice(1).map((date) => (
+          <li><a href={`/${ministry}/${date}/`}>{date}</a></li>
+        ))}
+      </ul>
+    </section>
+  )}
+</Base>
+
+<style>
+  .crumbs {
+    margin-bottom: 18px;
+    font-size: 14px;
+  }
+  .archive-links h2 {
+    font-size: 17px;
+  }
+</style>

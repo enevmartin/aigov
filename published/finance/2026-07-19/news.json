@@ -1,0 +1,15 @@
+{
+  "ministry": "finance",
+  "date": "2026-07-19",
+  "items": [
+    {
+      "title": "Тестова новина",
+      "summary": "Резюме от фалшивия мозък за finance.",
+      "source": {
+        "url": "https://example.bg/fake-source",
+        "title": "Тестов източник (fake brain)",
+        "retrieved": "2026-07-19"
+      }
+    }
+  ]
+}

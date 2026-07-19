@@ -17,6 +17,7 @@ import shutil
 from pathlib import Path
 
 import frontmatter
+import yaml
 
 from core.config import AppConfig
 from core.contracts import Aggregates, NewsDigest, Report, TaskSpec, TaskType
@@ -116,15 +117,31 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         results["published"].append(task_id)
 
     if results["published"]:
-        rebuild_index(published_root)
+        rebuild_index(published_root, ministry_names(config))
     return results
 
 
-def rebuild_index(published_root: Path) -> Path:
+def ministry_names(config: AppConfig) -> dict[str, str]:
+    """Map ministry slug -> display name from the declarations.
+
+    The site reads ONLY published/ (invariant #2), so display names must
+    travel inside index.json; the core reads the declarations on its behalf.
+    """
+    names: dict[str, str] = {}
+    for slug in config.ministries:
+        declaration_path = config.ministry_dir(slug) / "ministry.yaml"
+        if declaration_path.is_file():
+            declaration = yaml.safe_load(declaration_path.read_text(encoding="utf-8"))
+            names[slug] = str(declaration.get("name", slug))
+    return names
+
+
+def rebuild_index(published_root: Path, names: dict[str, str] | None = None) -> Path:
     """Regenerate ``published/index.json`` from the directory tree.
 
     The site uses this as its table of contents: per ministry, the sorted
-    list of publication dates and which artifacts each date has.
+    list of publication dates, which artifacts each date has, and the
+    ministry display names.
     """
     index: dict[str, list[dict[str, object]]] = {}
     if published_root.is_dir():
@@ -139,7 +156,11 @@ def rebuild_index(published_root: Path) -> Path:
 
     published_root.mkdir(parents=True, exist_ok=True)
     target = published_root / INDEX_FILE
+    payload = {
+        "ministries": index,
+        "names": {slug: (names or {}).get(slug, slug) for slug in index},
+    }
     target.write_text(
-        json.dumps({"ministries": index}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return target

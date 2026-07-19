@@ -1,0 +1,156 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+const { title, description = "AI електронно правителство на България — публични анализи и отчети." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="bg">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{title} — aigov.bg</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="container nav">
+        <a class="brand" href="/">
+          <span class="brand-mark">ai</span>gov.bg
+        </a>
+        <div class="nav-links">
+          <a href="/">Кабинет</a>
+          <a href="/arhiv/">Архив</a>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <p>
+          aigov.bg — експериментален AI прочит на публични данни. Отчетите са
+          генерирани от AI и цитират източниците си; не са официална
+          държавна информация.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  :root {
+    --bg: #fafaf8;
+    --surface: #ffffff;
+    --ink: #1c2733;
+    --muted: #5b6b7b;
+    --line: #e3e7ec;
+    --accent: #0f5c46;
+    --accent-soft: #e7f2ee;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family:
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+    line-height: 1.6;
+  }
+  .container {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  a {
+    color: var(--accent);
+  }
+
+  .site-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+  .brand {
+    font-size: 22px;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--ink);
+    letter-spacing: 0.01em;
+  }
+  .brand-mark {
+    color: var(--accent);
+  }
+  .nav-links {
+    display: flex;
+    gap: 22px;
+  }
+  .nav-links a {
+    text-decoration: none;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .nav-links a:hover {
+    color: var(--accent);
+  }
+
+  main.container {
+    padding-top: 36px;
+    padding-bottom: 64px;
+  }
+
+  h1 {
+    font-size: clamp(26px, 4vw, 38px);
+    line-height: 1.2;
+    margin: 0 0 8px;
+  }
+  .lead {
+    color: var(--muted);
+    max-width: 68ch;
+    margin: 0 0 32px;
+  }
+
+  .site-footer {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 14px;
+    padding: 18px 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  .tag {
+    display: inline-block;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+    padding: 2px 12px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+</style>

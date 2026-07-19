@@ -1,0 +1,17 @@
+{
+  "ministries": {
+    "finance": [
+      {
+        "date": "2026-07-19",
+        "artifacts": [
+          "aggregates.json",
+          "news.json",
+          "report.md"
+        ]
+      }
+    ]
+  },
+  "names": {
+    "finance": "Министерство на финансите"
+  }
+}
