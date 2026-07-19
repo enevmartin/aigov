@@ -13,7 +13,7 @@ cd "$REPO"
 DRY_RUN="${1:-}"
 
 # 1. enqueue whatever ingest has staged (a ministry with no staged data is skipped)
-for MINISTRY in $(uv run python -c "from pathlib import Path; from core.config import load_config; print(' '.join(load_config(Path('.')).ministries))"); do
+for MINISTRY in $(uv run python -c "from pathlib import Path; from core.config import load_config; print(' '.join(m.slug for m in load_config(Path('.')).enabled_ministries()))"); do
   uv run aigov enqueue --ministry "$MINISTRY" --type news_digest || true
 done
 

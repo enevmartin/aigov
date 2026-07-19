@@ -56,13 +56,13 @@ class TestMinistryDeclarations:
 class TestConfiguredMinistries:
     def test_every_configured_ministry_has_a_directory(self) -> None:
         config = load_config(REPO_ROOT)
-        for slug in config.ministries:
+        for slug in [m.slug for m in config.ministries]:
             assert (REPO_ROOT / "ministries" / slug / "ministry.yaml").is_file()
 
     def test_rss_sources_shape_matches_ingest_expectations(self) -> None:
         """collect_rss needs name+url on every rss entry."""
         config = load_config(REPO_ROOT)
-        for slug in config.ministries:
+        for slug in [m.slug for m in config.ministries]:
             declaration = yaml.safe_load(
                 (REPO_ROOT / "ministries" / slug / "ministry.yaml").read_text(encoding="utf-8")
             )
@@ -74,7 +74,7 @@ class TestConfiguredMinistries:
         from brains.claude_code.runner import PROMPT_FILES
 
         config = load_config(REPO_ROOT)
-        for slug in config.ministries:
+        for slug in [m.slug for m in config.ministries]:
             prompts = REPO_ROOT / "ministries" / slug / "prompts"
             for task_type in TaskType:
                 assert (prompts / PROMPT_FILES[task_type]).is_file()

@@ -32,7 +32,7 @@ from brains.base import (
 )
 from core.config import AppConfig
 from core.contracts import TaskSpec, TaskType
-from core.queue import FileQueue, QueueState
+from core.session import run_session
 
 # task type -> prompt file inside ministries/{slug}/prompts/
 PROMPT_FILES: dict[TaskType, str] = {
@@ -156,18 +156,5 @@ def run_cabinet_session(
         from tests.fake_brain import FakeBrain  # dev/test dependency, imported lazily
 
         brain = FakeBrain()
-    brain = brain or ClaudeCodeBrain(config)
-
-    queue = FileQueue(config.path("tasks"))
-    results: dict[str, list[str]] = {"done": [], "failed": []}
-    for task_id in queue.list_tasks(QueueState.PENDING):
-        running = queue.claim(task_id)
-        try:
-            brain.run(running)
-        except Exception as exc:  # noqa: BLE001 — any brain failure fails only this task
-            queue.fail(task_id, f"{type(exc).__name__}: {exc}")
-            results["failed"].append(task_id)
-        else:
-            queue.complete(task_id)
-            results["done"].append(task_id)
-    return results
+    resolved = brain or ClaudeCodeBrain(config)
+    return run_session(config, lambda _name: resolved)

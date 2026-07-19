@@ -17,8 +17,13 @@ brains:
     model: deepseek-v4-flash
     fallback: kimi-k2.6
 
+# Each ministry may set `enabled: false` (declared but not running) and an
+# optional `brain:` override — two ministries can run on different brains in
+# the same cabinet session. Plain `- slug` is shorthand for enabled defaults.
 ministries:
-  - finance
+  - slug: finance
+    enabled: true
+    # brain: claude_code   # optional per-ministry override
 
 schedules:
   # Consumed by deploy/ systemd timers; documented here for one-glance clarity.

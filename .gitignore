@@ -34,6 +34,10 @@ data/staging/*
 tasks/*/*
 !tasks/*/.gitkeep
 
+# ---- Generated agent exports (aigov export; derived from ministries/) ----
+export/
+.claude/agents/
+
 # ---- Node / Astro (site/) ----
 node_modules/
 site/dist/

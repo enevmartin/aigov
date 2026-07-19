@@ -158,6 +158,7 @@ class TestConfig:
     def test_loads_repo_config(self) -> None:
         config = load_config(Path(__file__).resolve().parent.parent)
         assert config.brain == "claude_code"
-        assert "finance" in config.ministries
+        assert "finance" in [m.slug for m in config.ministries]
+        assert config.brain_for("finance") == "claude_code"  # no override set
         assert config.path("tasks").name == "tasks"
         assert config.ministry_dir("finance").parts[-2:] == ("ministries", "finance")

@@ -128,11 +128,11 @@ def ministry_names(config: AppConfig) -> dict[str, str]:
     travel inside index.json; the core reads the declarations on its behalf.
     """
     names: dict[str, str] = {}
-    for slug in config.ministries:
-        declaration_path = config.ministry_dir(slug) / "ministry.yaml"
+    for entry in config.ministries:
+        declaration_path = config.ministry_dir(entry.slug) / "ministry.yaml"
         if declaration_path.is_file():
             declaration = yaml.safe_load(declaration_path.read_text(encoding="utf-8"))
-            names[slug] = str(declaration.get("name", slug))
+            names[entry.slug] = str(declaration.get("name", entry.slug))
     return names
 
 

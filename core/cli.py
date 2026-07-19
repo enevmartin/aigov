@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import sys
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
@@ -23,6 +24,7 @@ from core.contracts import TaskSpec, TaskType, export_json_schemas
 from core.ingest import collect_rss
 from core.publish import publish_all
 from core.queue import FileQueue, QueueState
+from core.session import TaskRunner, run_session
 
 
 def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
@@ -32,8 +34,8 @@ def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
 
 
 def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
-    """Collect RSS for one or all configured ministries into staging."""
-    slugs = [ministry] if ministry else config.ministries
+    """Collect RSS for one or all ENABLED ministries into staging."""
+    slugs = [ministry] if ministry else [m.slug for m in config.enabled_ministries()]
     staged_any = False
     for slug in slugs:
         declaration = _load_ministry(config, slug)
@@ -80,16 +82,49 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
     return 0
 
 
+def _brain_resolver(config: AppConfig, dry_run: bool) -> Callable[[str], TaskRunner]:
+    """Composition root: map a brain name to a concrete adapter.
+
+    This closure is the ONLY place that touches the brains package, and it
+    does so purely by the name configured in config.yaml. With ``dry_run``
+    every name resolves to the deterministic fake brain (zero tokens).
+    """
+    cache: dict[str, TaskRunner] = {}
+
+    def resolve(name: str) -> TaskRunner:
+        if dry_run:
+            from tests.fake_brain import FakeBrain  # dev dependency, lazily
+
+            return FakeBrain()
+        if name not in cache:
+            module = importlib.import_module(f"brains.{name}")
+            cache[name] = module.get_brain(config)
+        return cache[name]
+
+    return resolve
+
+
 def cmd_session(config: AppConfig, dry_run: bool) -> int:
-    """Run one cabinet session with the brain configured in config.yaml."""
-    brain_module = importlib.import_module(f"brains.{config.brain}")
-    run_session = brain_module.run_cabinet_session
-    results: dict[str, list[str]] = run_session(config, dry_run=dry_run)
+    """Run one cabinet session, resolving the brain PER TASK.
+
+    Each task uses its ministry's brain override when set, else the global
+    ``brain`` — two ministries can run on different brains in one session.
+    """
+    results = run_session(config, _brain_resolver(config, dry_run))
     for task_id in results["done"]:
         print(f"done   {task_id}")
     for task_id in results["failed"]:
         print(f"FAILED {task_id}")
     return 0 if not results["failed"] else 1
+
+
+def cmd_export(config: AppConfig, ministry: str, brain: str) -> int:
+    """Export a ministry as the framework-specific artifact of *brain*."""
+    exporter = importlib.import_module(f"brains.{brain}.exporter")
+    written: list[Path] = exporter.export_ministry(config, ministry)
+    for path in written:
+        print(f"exported {path.relative_to(config.root)}")
+    return 0
 
 
 def cmd_publish(config: AppConfig) -> int:
@@ -149,6 +184,12 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("publish", help="validate done tasks and release to published/")
     sub.add_parser("status", help="queue and published overview")
 
+    p_export = sub.add_parser(
+        "export", help="export a ministry as a framework-specific agent artifact"
+    )
+    p_export.add_argument("--ministry", required=True)
+    p_export.add_argument("--brain", required=True, help="claude_code | openclaw | api")
+
     args = parser.parse_args(argv)
     config = load_config(args.root.resolve())
 
@@ -160,6 +201,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_session(config, args.dry_run)
     if args.command == "publish":
         return cmd_publish(config)
+    if args.command == "export":
+        return cmd_export(config, args.ministry, args.brain)
     return cmd_status(config)
 
 
