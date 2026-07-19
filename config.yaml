@@ -43,6 +43,14 @@ ministries:
     enabled: false
   - slug: tourism
     enabled: false
+  - slug: education
+    enabled: false
+  - slug: culture
+    enabled: false
+  - slug: youth-sport
+    enabled: false
+  - slug: justice
+    enabled: false
   - slug: foreign-affairs
     enabled: false
   - slug: interior
