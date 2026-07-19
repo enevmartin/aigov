@@ -8,6 +8,7 @@ combined result as parquet into ``data/staging/``.
 from __future__ import annotations
 
 from calendar import timegm
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -75,34 +76,60 @@ def items_to_parquet(items: list[FeedItem], target: Path) -> Path:
     return target
 
 
+@dataclass(frozen=True)
+class SourceResult:
+    """Outcome of fetching one declared source (feeds the health ledger)."""
+
+    name: str
+    url: str
+    ok: bool
+    note: str | None = None
+
+
+@dataclass(frozen=True)
+class IngestResult:
+    """What one ``collect_rss`` run produced."""
+
+    staged: Path | None
+    sources: list[SourceResult]
+    items: int = 0
+
+
 def collect_rss(
     sources: list[dict[str, str]],
     staging_dir: Path,
     ministry: str,
     scraper: ScraperBase | None = None,
-) -> Path | None:
+) -> IngestResult:
     """Fetch every feed in *sources* and stage the combined items as parquet.
 
-    *sources* entries need ``name`` and ``url`` keys (from ministry.yaml).
-    Returns the parquet path, or ``None`` when no items were collected.
-    Individual feed failures are tolerated: one dead feed must not block the
-    ministry's digest.
+    *sources* entries need ``name`` and ``url`` keys (from ministry.yaml);
+    entries with ``enabled: false`` are skipped. Individual feed failures are
+    tolerated — one dead feed must not block the ministry's digest — but each
+    source's outcome is reported so the health ledger can track degradation.
     """
     own_scraper = scraper is None
     scraper = scraper or ScraperBase()
     all_items: list[FeedItem] = []
+    results: list[SourceResult] = []
     try:
         for source in sources:
-            try:
-                response = scraper.fetch(source["url"])
-            except Exception:  # noqa: BLE001 — a dead feed is routine, not fatal
+            if not source.get("enabled", True):
                 continue
-            all_items.extend(parse_feed(response.content, source["name"], source["url"]))
+            name, url = source["name"], source["url"]
+            try:
+                response = scraper.fetch(url)
+            except Exception as exc:  # noqa: BLE001 — a dead feed is routine, not fatal
+                results.append(SourceResult(name, url, ok=False, note=str(exc)))
+                continue
+            all_items.extend(parse_feed(response.content, name, url))
+            results.append(SourceResult(name, url, ok=True))
     finally:
         if own_scraper:
             scraper.close()
 
     if not all_items:
-        return None
+        return IngestResult(staged=None, sources=results)
     stamp = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H%M%S")
-    return items_to_parquet(all_items, staging_dir / ministry / f"rss-{stamp}.parquet")
+    staged = items_to_parquet(all_items, staging_dir / ministry / f"rss-{stamp}.parquet")
+    return IngestResult(staged=staged, sources=results, items=len(all_items))

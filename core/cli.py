@@ -11,18 +11,21 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import json
 import sys
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
 
+import polars as pl
 import yaml
 
 from core.config import AppConfig, load_config
 from core.contracts import TaskSpec, TaskType, export_json_schemas
-from core.ingest import collect_rss
+from core.ingest import collect_rss, detect_spike
 from core.publish import publish_all
+from core.publish.health import record_session, record_source_result
 from core.queue import FileQueue, QueueState
 from core.session import TaskRunner, run_session
 
@@ -33,8 +36,60 @@ def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
     return cast("dict[str, Any]", yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
+def _maybe_enqueue_crisis(config: AppConfig, slug: str, staged: Path) -> None:
+    """Deterministic spike check over freshly staged news; enqueue on trigger.
+
+    Detection is pure Python (чл. 7): the LLM sees the task only after the
+    core decided there is a spike. One crisis task per ministry per day —
+    a second trigger the same day is silently skipped.
+    """
+    declaration = _load_ministry(config, slug)
+    crisis_cfg = declaration.get("crisis_keywords") or {}
+    keywords: list[str] = crisis_cfg.get("keywords", [])
+    if not keywords:
+        return
+
+    frame = pl.read_parquet(staged)
+    texts = [
+        f"{title} {summary}"
+        for title, summary in zip(frame["title"], frame["summary"], strict=True)
+    ]
+    trigger = detect_spike(texts, keywords, int(crisis_cfg.get("min_hits", 3)))
+    if trigger is None:
+        return
+
+    now = datetime.now(tz=UTC)
+    spec = TaskSpec(
+        id=f"{slug}-{now.strftime('%Y-%m-%d')}-crisis-brief",
+        ministry=slug,
+        type=TaskType.CRISIS_BRIEF,
+        created=now,
+    )
+    trigger_json = json.dumps(
+        {"keywords": trigger.keywords, "counts": trigger.counts},
+        ensure_ascii=False,
+        indent=2,
+    ).encode("utf-8")
+    queue = FileQueue(config.path("tasks"))
+    try:
+        # input is a COPY of the staged news (the daily digest still needs it)
+        queue.enqueue(
+            spec,
+            input_files={f"staging/{staged.name}": staged.read_bytes(),
+                         "trigger.json": trigger_json},
+        )
+    except FileExistsError:
+        return  # already triggered today
+    print(f"[{slug}] CRISIS trigger {trigger.counts} -> enqueued {spec.id}")
+
+
 def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
-    """Collect RSS for one or all ENABLED ministries into staging."""
+    """Collect RSS for one or all ENABLED ministries into staging.
+
+    Every source attempt is recorded in the health ledger (3 consecutive
+    failures -> degraded + data_quality_alert); a keyword spike in the fresh
+    items auto-enqueues a crisis_brief task.
+    """
     slugs = [ministry] if ministry else [m.slug for m in config.enabled_ministries()]
     staged_any = False
     for slug in slugs:
@@ -43,12 +98,18 @@ def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
         if not rss_sources:
             print(f"[{slug}] no RSS sources declared, skipping")
             continue
-        staged = collect_rss(rss_sources, config.path("data_staging"), slug)
-        if staged is None:
+        result = collect_rss(rss_sources, config.path("data_staging"), slug)
+        for source in result.sources:
+            record_source_result(
+                config, slug, source.name, source.url, ok=source.ok, note=source.note
+            )
+        if result.staged is None:
             print(f"[{slug}] nothing collected")
         else:
-            print(f"[{slug}] staged {staged.relative_to(config.root)}")
+            print(f"[{slug}] staged {result.staged.relative_to(config.root)} "
+                  f"({result.items} items)")
             staged_any = True
+            _maybe_enqueue_crisis(config, slug, result.staged)
     return 0 if staged_any or not slugs else 1
 
 
@@ -169,6 +230,7 @@ def cmd_session(config: AppConfig, dry_run: bool) -> int:
     ``brain`` — two ministries can run on different brains in one session.
     """
     results = run_session(config, _brain_resolver(config, dry_run))
+    record_session(config, results)
     for task_id in results["done"]:
         print(f"done   {task_id}")
     for task_id in results["failed"]:

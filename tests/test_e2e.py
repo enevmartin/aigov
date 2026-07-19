@@ -29,13 +29,14 @@ def test_full_pipeline_with_fake_brain(tmp_path: Path) -> None:
     scraper = ScraperBase(
         min_interval=0, transport=httpx.MockTransport(lambda _: httpx.Response(200, text=RSS_XML))
     )
-    staged = collect_rss(
+    result = collect_rss(
         [{"name": "Тест медия", "url": "https://example.bg/rss"}],
         tmp_path / "staging",
         "finance",
         scraper=scraper,
     )
     scraper.close()
+    staged = result.staged
     assert staged is not None
 
     # --- 2. enqueue: staged data becomes a task's input -------------------

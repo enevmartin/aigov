@@ -117,14 +117,19 @@ class TestCollectRss:
             {"name": "Жива медия", "url": "https://example.bg/rss"},
             {"name": "Мъртва медия", "url": "https://dead.example.bg/rss"},
         ]
-        path = collect_rss(sources, tmp_path / "staging", "finance", scraper=scraper)
+        result = collect_rss(sources, tmp_path / "staging", "finance", scraper=scraper)
         scraper.close()
 
-        assert path is not None and path.suffix == ".parquet"
-        assert path.parent == tmp_path / "staging" / "finance"
-        frame = pl.read_parquet(path)
+        assert result.staged is not None and result.staged.suffix == ".parquet"
+        assert result.staged.parent == tmp_path / "staging" / "finance"
+        assert result.items == 2
+        frame = pl.read_parquet(result.staged)
         assert frame.height == 2
         assert frame["source_name"].unique().to_list() == ["Жива медия"]
+        outcomes = {s.name: s.ok for s in result.sources}
+        assert outcomes == {"Жива медия": True, "Мъртва медия": False}
+        dead = next(s for s in result.sources if not s.ok)
+        assert dead.note  # failure reason recorded for the health ledger
 
     def test_returns_none_when_nothing_collected(self, tmp_path: Path) -> None:
         scraper = ScraperBase(
@@ -137,8 +142,29 @@ class TestCollectRss:
             scraper=scraper,
         )
         scraper.close()
-        assert result is None
+        assert result.staged is None
         assert not (tmp_path / "staging" / "finance").exists()
+
+    def test_disabled_sources_are_skipped(self, tmp_path: Path) -> None:
+        calls: list[str] = []
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            calls.append(str(request.url))
+            return httpx.Response(200, text=RSS_XML)
+
+        scraper = ScraperBase(min_interval=0, transport=httpx.MockTransport(handler))
+        result = collect_rss(
+            [
+                {"name": "on", "url": "https://on.example.bg/rss"},
+                {"name": "off", "url": "https://off.example.bg/rss", "enabled": False},
+            ],
+            tmp_path / "staging",
+            "finance",
+            scraper=scraper,
+        )
+        scraper.close()
+        assert calls == ["https://on.example.bg/rss"]
+        assert [s.name for s in result.sources] == ["on"]
 
 
 class TestOpenData:
