@@ -1,0 +1,52 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ---- uv ----
+# uv.lock IS committed (reproducible builds); uv's cache is not.
+.uv/
+
+# ---- Secrets ----
+.env
+.env.*
+!.env.example
+
+# ---- Ephemeral data (never committed) ----
+data/raw/
+data/staging/
+
+# ---- Runtime task queue (ephemeral working state) ----
+tasks/pending/
+tasks/running/
+tasks/done/
+tasks/failed/
+# keep the directories themselves
+!tasks/pending/.gitkeep
+!tasks/running/.gitkeep
+!tasks/done/.gitkeep
+!tasks/failed/.gitkeep
+
+# ---- Node / Astro (site/) ----
+node_modules/
+site/dist/
+site/.astro/
+.DS_Store
+
+# ---- Editor / OS ----
+.idea/
+.vscode/
+*.swp
+Thumbs.db

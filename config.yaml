@@ -1,0 +1,34 @@
+# aigov.bg — central configuration
+# Switching the brain is a ONE-LINE change here. Nothing else moves.
+
+brain: claude_code # claude_code | openclaw | api
+
+brains:
+  claude_code:
+    # One "cabinet session" processes ALL pending tasks in a single batch run
+    # (conserves the Claude Pro limit). Invoked by deploy/aigov-session.timer.
+    cmd: claude
+    output_format: json
+  openclaw:
+    # Skeleton — not implemented. See brains/openclaw/README.md.
+    gateway: localhost:18789
+  api:
+    # Skeleton — not implemented. See brains/api/README.md.
+    model: deepseek-v4-flash
+    fallback: kimi-k2.6
+
+ministries:
+  - finance
+
+schedules:
+  # Consumed by deploy/ systemd timers; documented here for one-glance clarity.
+  ingest: hourly # aigov-ingest.timer  — collect data/news
+  session: "twice-daily" # aigov-session.timer — cabinet session (brain runs)
+
+paths:
+  # All relative to the repo root. Core resolves them via core/config.py.
+  tasks: tasks
+  published: published
+  data_raw: data/raw
+  data_staging: data/staging
+  ministries: ministries
