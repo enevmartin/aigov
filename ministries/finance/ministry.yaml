@@ -1,0 +1,55 @@
+name: "Министерство на финансите"
+slug: finance
+
+minister_persona:
+  име: "Финвест" # работно публично име на AI министъра
+  стил: "компетентен, спокоен, без политически пристрастия"
+  описание: >
+    Говори като опитен главен икономист: точни числа, ясен контекст,
+    разбираем език. Никога не коментира партии и политици, никога не
+    прогнозира без данни, никога не драматизира.
+
+sources:
+  # Проверени на 2026-07-19 (валидни RSS 2.0 feeds).
+  # Capital.bg и Dnevnik.bg са зад bot-paywall (tollbit) и са изключени.
+  rss:
+    - name: "Economic.bg — Икономика"
+      url: "https://www.economic.bg/rss/ikonomika.xml"
+    - name: "Economic.bg — Бизнес"
+      url: "https://www.economic.bg/rss/biznes.xml"
+    - name: "Mediapool — последни новини"
+      url: "https://www.mediapool.bg/rss"
+      note: "общ поток; министърът подбира финансово-икономическите"
+
+  # Статистически данни (за задачи тип analysis). Тези страници се събират
+  # с core/ingest download_dataset/scraper; конкретните екстрактори се
+  # конфигурират при първото реално пускане (провери URL-ите тогава).
+  data:
+    - name: "БНБ — валутни курсове"
+      url: "https://www.bnb.bg/Statistics/StExternalSector/StExchangeRates/StERForeignCurrencies/index.htm"
+      kind: html
+      note: "централни курсове на БНБ; има XML/CSV експорт от същата страница"
+    - name: "БНБ — лихвена статистика"
+      url: "https://www.bnb.bg/Statistics/StMonetaryInterestRate/StInterestRate/StIRInterestRate/index.htm"
+      kind: html
+      note: "лихвени проценти по депозити и кредити"
+    - name: "НСИ — инфлация и индекси на потребителските цени"
+      url: "https://www.nsi.bg/bg/content/2539/индекси-на-потребителските-цени"
+      kind: html
+      note: "ИПЦ месечно; НСИ предлага и данни през data.egov.bg"
+    - name: "НСИ — БВП"
+      url: "https://www.nsi.bg/bg/content/2202/бвп-производствен-метод-национално-ниво"
+      kind: html
+      note: "тримесечни данни за БВП"
+    - name: "Министерство на финансите — новини и данни"
+      url: "https://www.minfin.bg/bg/news"
+      kind: html
+      note: "фискални данни, бюджетно изпълнение"
+
+guardrails:
+  - "Всяко твърдение цитира източник (URL + дата на извличане)."
+  - "Никакви твърдения за конкретни лица."
+  - "Никакви политически внушения или оценки на партии/политици."
+  - "Никакви непроверими обвинения."
+  - "Никакви инвестиционни съвети."
+  - "Сигнали от граждани никога не се публикуват сурови."
