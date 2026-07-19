@@ -35,6 +35,14 @@ ministries:
     enabled: true
   - slug: agriculture
     enabled: false
+  - slug: economy
+    enabled: false
+  - slug: energy
+    enabled: false
+  - slug: innovation
+    enabled: false
+  - slug: tourism
+    enabled: false
   - slug: foreign-affairs
     enabled: false
   - slug: interior
