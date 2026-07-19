@@ -29,6 +29,12 @@ ministries:
     # brain: claude_code   # optional per-ministry override
   - slug: government # "премиерът" — composes joint reports from published/
     enabled: true
+  - slug: health
+    enabled: true
+  - slug: environment
+    enabled: true
+  - slug: agriculture
+    enabled: false
   - slug: foreign-affairs
     enabled: false
   - slug: interior
