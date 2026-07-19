@@ -52,6 +52,11 @@ warn_unused_ignores = true
 module = "core.*"
 strict = true
 
+# feedparser ships no type stubs
+[[tool.mypy.overrides]]
+module = "feedparser.*"
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
