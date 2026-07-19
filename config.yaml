@@ -24,6 +24,8 @@ ministries:
   - slug: finance
     enabled: true
     # brain: claude_code   # optional per-ministry override
+  - slug: government # "премиерът" — composes joint reports from published/
+    enabled: true
 
 schedules:
   # Consumed by deploy/ systemd timers; documented here for one-glance clarity.

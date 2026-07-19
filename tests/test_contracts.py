@@ -160,13 +160,17 @@ class TestNewsDigest:
 
 
 class TestJsonSchemaExport:
-    def test_exports_all_four_schemas(self, tmp_path: Path) -> None:
+    def test_exports_all_schemas(self, tmp_path: Path) -> None:
         written = export_json_schemas(tmp_path)
         names = sorted(p.name for p in written)
         assert names == [
             "aggregates.schema.json",
+            "crisis_report.schema.json",
+            "health.schema.json",
+            "joint_report.schema.json",
             "news.schema.json",
             "report.schema.json",
+            "signals.schema.json",
             "task.schema.json",
         ]
         for p in written:

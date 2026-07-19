@@ -12,13 +12,26 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from core.contracts.models import Aggregates, NewsDigest, Report, TaskSpec
+from core.contracts.models import (
+    Aggregates,
+    CrisisReport,
+    JointReport,
+    NewsDigest,
+    Report,
+    SignalStats,
+    SystemHealth,
+    TaskSpec,
+)
 
 _EXPORTED: dict[str, type[BaseModel]] = {
     "task": TaskSpec,
     "report": Report,
+    "crisis_report": CrisisReport,
+    "joint_report": JointReport,
     "aggregates": Aggregates,
     "news": NewsDigest,
+    "signals": SignalStats,
+    "health": SystemHealth,
 }
 
 

@@ -18,71 +18,84 @@ from pathlib import Path
 
 import frontmatter
 import yaml
+from pydantic import BaseModel
 
 from core.config import AppConfig
-from core.contracts import Aggregates, NewsDigest, Report, TaskSpec, TaskType
+from core.contracts import (
+    OPTIONAL_ARTIFACTS,
+    REPORT_MODEL,
+    REQUIRED_ARTIFACTS,
+    Aggregates,
+    NewsDigest,
+    Report,
+    SignalStats,
+    TaskSpec,
+)
 from core.queue import FileQueue, QueueState
 
 INDEX_FILE = "index.json"
+
+_JSON_MODELS: dict[str, type[BaseModel]] = {
+    "aggregates.json": Aggregates,
+    "news.json": NewsDigest,
+    "signals.json": SignalStats,
+}
 
 
 class OutputRejected(Exception):
     """Brain output failed validation; the reason becomes ``reason.txt``."""
 
 
-def validate_output(
-    output_dir: Path, spec: TaskSpec
-) -> tuple[Report, Aggregates, NewsDigest | None]:
-    """Validate the three artifacts against the contract.
-
-    Raises :class:`OutputRejected` with a human-readable reason on any
-    violation — including a report whose front-matter ministry does not match
-    the task's ministry (a brain must not publish on behalf of another
-    ministry).
-    """
-    report_path = output_dir / "report.md"
-    aggregates_path = output_dir / "aggregates.json"
-    news_path = output_dir / "news.json"
-
-    if not report_path.is_file():
-        raise OutputRejected("missing report.md")
-    if not aggregates_path.is_file():
-        raise OutputRejected("missing aggregates.json")
-
+def _validate_report(path: Path, model: type[Report]) -> Report:
     try:
-        post = frontmatter.loads(report_path.read_text(encoding="utf-8"))
-        report = Report.model_validate(post.metadata)
+        post = frontmatter.loads(path.read_text(encoding="utf-8"))
+        report = model.model_validate(post.metadata)
     except Exception as exc:
         raise OutputRejected(f"report.md front-matter invalid: {exc}") from exc
     if not post.content.strip():
         raise OutputRejected("report.md has no body")
+    return report
 
+
+def _validate_json(path: Path, model: type[BaseModel]) -> BaseModel:
     try:
-        aggregates = Aggregates.model_validate(
-            json.loads(aggregates_path.read_text(encoding="utf-8"))
-        )
+        return model.model_validate(json.loads(path.read_text(encoding="utf-8")))
     except Exception as exc:
-        raise OutputRejected(f"aggregates.json invalid: {exc}") from exc
+        raise OutputRejected(f"{path.name} invalid: {exc}") from exc
 
-    news: NewsDigest | None = None
-    if spec.type is TaskType.NEWS_DIGEST:
-        if not news_path.is_file():
-            raise OutputRejected("news_digest task produced no news.json")
-        try:
-            news = NewsDigest.model_validate(json.loads(news_path.read_text(encoding="utf-8")))
-        except Exception as exc:
-            raise OutputRejected(f"news.json invalid: {exc}") from exc
 
-    for name, artifact_ministry in (
-        ("report.md", report.ministry),
-        ("aggregates.json", aggregates.ministry),
-        *((("news.json", news.ministry),) if news else ()),
-    ):
-        if artifact_ministry != spec.ministry:
+def validate_output(output_dir: Path, spec: TaskSpec) -> dict[str, BaseModel]:
+    """Validate a task's artifacts per its type; return the validated models.
+
+    Required artifacts (``REQUIRED_ARTIFACTS[spec.type]``) must exist and
+    validate; optional ones validate when present. Every artifact carrying a
+    ``ministry`` field must match the task's ministry — a brain must not
+    publish on behalf of another ministry. Raises :class:`OutputRejected`
+    with a human-readable reason on any violation.
+    """
+    validated: dict[str, BaseModel] = {}
+    required = REQUIRED_ARTIFACTS[spec.type]
+    optional = OPTIONAL_ARTIFACTS[spec.type]
+
+    for name in required:
+        if not (output_dir / name).is_file():
+            raise OutputRejected(f"{spec.type.value} task produced no {name}")
+    for name in (*required, *optional):
+        path = output_dir / name
+        if not path.is_file():
+            continue
+        if name == "report.md":
+            validated[name] = _validate_report(path, REPORT_MODEL[spec.type])
+        else:
+            validated[name] = _validate_json(path, _JSON_MODELS[name])
+
+    for name, model_obj in validated.items():
+        artifact_ministry = getattr(model_obj, "ministry", None)
+        if artifact_ministry is not None and artifact_ministry != spec.ministry:
             raise OutputRejected(
                 f"{name} claims ministry {artifact_ministry!r} but task is {spec.ministry!r}"
             )
-    return report, aggregates, news
+    return validated
 
 
 def publish_all(config: AppConfig) -> dict[str, list[str]]:
@@ -100,18 +113,19 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         spec = queue.load_spec(QueueState.DONE, task_id)
         task_dir = queue.path(QueueState.DONE, task_id)
         try:
-            report, _aggregates, news = validate_output(task_dir / "output", spec)
+            validated = validate_output(task_dir / "output", spec)
         except OutputRejected as exc:
             queue.fail(task_id, str(exc), source_state=QueueState.DONE)
             results["rejected"].append(task_id)
             continue
 
-        target = published_root / spec.ministry / report.date.isoformat()
+        # every artifact model carries the publication date
+        dates = {m.date for m in validated.values() if hasattr(m, "date")}
+        day = sorted(dates)[-1].isoformat()
+        target = published_root / spec.ministry / day
         target.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(task_dir / "output" / "report.md", target / "report.md")
-        shutil.copy2(task_dir / "output" / "aggregates.json", target / "aggregates.json")
-        if news is not None:
-            shutil.copy2(task_dir / "output" / "news.json", target / "news.json")
+        for name in validated:
+            shutil.copy2(task_dir / "output" / name, target / name)
 
         shutil.rmtree(task_dir)
         results["published"].append(task_id)

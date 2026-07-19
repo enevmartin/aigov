@@ -22,23 +22,19 @@ from pathlib import Path
 
 import yaml
 
-from brains.base import (
-    AGGREGATES_FILE,
-    NEWS_FILE,
-    OUTPUT_DIR,
-    REPORT_FILE,
-    ArtifactSet,
-    BrainAdapter,
-)
+from brains.base import OUTPUT_DIR, ArtifactSet, BrainAdapter
 from core.config import AppConfig
-from core.contracts import TaskSpec, TaskType
+from core.contracts import REQUIRED_ARTIFACTS, TaskSpec, TaskType
 from core.session import run_session
 
 # task type -> prompt file inside ministries/{slug}/prompts/
 PROMPT_FILES: dict[TaskType, str] = {
     TaskType.ANALYSIS: "analysis.md",
     TaskType.NEWS_DIGEST: "news.md",
-    TaskType.SIGNAL_TRIAGE: "analysis.md",  # phase 2; reuse analysis until dedicated prompt
+    TaskType.WEEKLY_REPORT: "weekly.md",
+    TaskType.CRISIS_BRIEF: "crisis.md",
+    TaskType.JOINT_REPORT: "joint.md",
+    TaskType.SIGNAL_TRIAGE: "signals.md",
 }
 
 CONTRACT_INSTRUCTIONS = """\
@@ -125,12 +121,8 @@ class ClaudeCodeBrain:
         self._exec(prompt, task_dir, self.config)
 
         missing = [
-            name
-            for name in (REPORT_FILE, AGGREGATES_FILE)
-            if not (output / name).is_file()
+            name for name in REQUIRED_ARTIFACTS[spec.type] if not (output / name).is_file()
         ]
-        if spec.type is TaskType.NEWS_DIGEST and not (output / NEWS_FILE).is_file():
-            missing.append(NEWS_FILE)
         if missing:
             raise RuntimeError(f"brain produced no {', '.join(missing)} in output/")
         return ArtifactSet.from_output_dir(output)

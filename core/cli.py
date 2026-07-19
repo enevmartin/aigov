@@ -52,19 +52,77 @@ def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
     return 0 if staged_any or not slugs else 1
 
 
-def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
-    """Turn staged data into a pending task carrying it as input."""
+def _staged_input(config: AppConfig, ministry: str) -> tuple[dict[str, bytes], list[Path]]:
+    """Input from data/staging (analysis, news_digest, manual crisis_brief)."""
     staging = config.path("data_staging") / ministry
     staged_files = sorted(staging.glob("*.parquet")) if staging.is_dir() else []
-    if not staged_files:
-        print(f"[{ministry}] no staged data — run 'aigov ingest' first")
+    files = {f"staging/{p.name}": p.read_bytes() for p in staged_files}
+    return files, staged_files
+
+
+def _published_input(
+    config: AppConfig, slugs: list[str], days: int | None = None
+) -> dict[str, bytes]:
+    """Input from already-published artifacts (weekly_report, joint_report)."""
+    published = config.path("published")
+    files: dict[str, bytes] = {}
+    for slug in slugs:
+        ministry_dir = published / slug
+        if not ministry_dir.is_dir():
+            continue
+        dates = sorted((p for p in ministry_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
+        for date_dir in dates[-days:] if days else dates[-1:]:
+            for artifact in sorted(date_dir.iterdir()):
+                if artifact.is_file():
+                    key = f"published/{slug}/{date_dir.name}/{artifact.name}"
+                    files[key] = artifact.read_bytes()
+    return files
+
+
+def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
+    """Create a pending task with type-appropriate input.
+
+    - analysis / news_digest / crisis_brief: staged parquet from ingest
+    - weekly_report: the ministry's own published artifacts (last 7 days)
+    - joint_report: latest published artifacts of ALL enabled ministries
+      (needs 2+ with publications) — the "prime minister" composes only
+      from what is already public
+    - signal_triage: phase 3, schema-only for now
+    """
+    t = TaskType(task_type)
+    consumed: list[Path] = []
+
+    if t is TaskType.SIGNAL_TRIAGE:
+        print("signal_triage is phase 3: schema and tests exist, intake does not yet")
         return 1
+    if t is TaskType.JOINT_REPORT:
+        contributors = [
+            m.slug for m in config.enabled_ministries() if m.slug != ministry
+        ]
+        input_files = _published_input(config, contributors)
+        published_slugs = {key.split("/")[1] for key in input_files}
+        if len(published_slugs) < 2:
+            print(
+                f"[{ministry}] joint_report needs published reports from 2+ "
+                f"ministries (found {len(published_slugs)})"
+            )
+            return 1
+    elif t is TaskType.WEEKLY_REPORT:
+        input_files = _published_input(config, [ministry], days=7)
+        if not input_files:
+            print(f"[{ministry}] weekly_report needs published days — nothing found")
+            return 1
+    else:
+        input_files, consumed = _staged_input(config, ministry)
+        if not input_files:
+            print(f"[{ministry}] no staged data — run 'aigov ingest' first")
+            return 1
 
     now = datetime.now(tz=UTC)
     spec = TaskSpec(
         id=f"{ministry}-{now.strftime('%Y-%m-%d-%H%M%S')}-{task_type.replace('_', '-')}",
         ministry=ministry,
-        type=TaskType(task_type),
+        type=t,
         created=now,
     )
     schemas_dir = config.path("data_staging") / "_schemas"
@@ -73,12 +131,12 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
     queue = FileQueue(config.path("tasks"))
     queue.enqueue(
         spec,
-        input_files={f"staging/{p.name}": p.read_bytes() for p in staged_files},
+        input_files=input_files,
         expected_schema=(schemas_dir / "aggregates.schema.json").read_text(encoding="utf-8"),
     )
-    for p in staged_files:  # staging is ephemeral: data now lives in the task
+    for p in consumed:  # staging is ephemeral: data now lives in the task
         p.unlink()
-    print(f"enqueued {spec.id} with {len(staged_files)} input file(s)")
+    print(f"enqueued {spec.id} with {len(input_files)} input file(s)")
     return 0
 
 
