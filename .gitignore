@@ -24,20 +24,15 @@ coverage.xml
 .env.*
 !.env.example
 
-# ---- Ephemeral data (never committed) ----
-data/raw/
-data/staging/
+# ---- Ephemeral data (never committed; keep the dirs via .gitkeep) ----
+data/raw/*
+!data/raw/.gitkeep
+data/staging/*
+!data/staging/.gitkeep
 
-# ---- Runtime task queue (ephemeral working state) ----
-tasks/pending/
-tasks/running/
-tasks/done/
-tasks/failed/
-# keep the directories themselves
-!tasks/pending/.gitkeep
-!tasks/running/.gitkeep
-!tasks/done/.gitkeep
-!tasks/failed/.gitkeep
+# ---- Runtime task queue (ephemeral working state; keep the dirs) ----
+tasks/*/*
+!tasks/*/.gitkeep
 
 # ---- Node / Astro (site/) ----
 node_modules/
