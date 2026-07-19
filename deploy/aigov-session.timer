@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the aigov cabinet session twice daily (07:15 and 16:15 Sofia time)
+
+[Timer]
+OnCalendar=*-*-* 07:15:00 Europe/Sofia
+OnCalendar=*-*-* 16:15:00 Europe/Sofia
+Persistent=true
+
+[Install]
+WantedBy=timers.target

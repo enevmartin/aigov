@@ -1,0 +1,21 @@
+# Caddy config for aigov.bg — static files only, automatic HTTPS.
+# Install: append to /etc/caddy/Caddyfile (or import this file) and reload.
+
+aigov.bg, www.aigov.bg {
+	root * /var/www/aigov
+	encode zstd gzip
+	file_server
+
+	header {
+		# Static site — no scripts talk to any backend.
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		# Reports/data are regenerated at most twice daily.
+		Cache-Control "public, max-age=1800"
+	}
+
+	handle_errors {
+		respond "404 — няма такава страница" 404
+	}
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=aigov.bg hourly data ingest (RSS/open data, no LLM)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aigov
+WorkingDirectory=/opt/aigov
+ExecStart=/opt/aigov/deploy/run-ingest.sh
+# uv installs per-user into ~/.local/bin
+Environment=PATH=/home/aigov/.local/bin:/usr/local/bin:/usr/bin:/bin

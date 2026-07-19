@@ -1,0 +1,14 @@
+[Unit]
+Description=aigov.bg cabinet session (batch brain run + publish + site build)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=aigov
+WorkingDirectory=/opt/aigov
+ExecStart=/opt/aigov/deploy/run-session.sh
+Environment=PATH=/home/aigov/.local/bin:/usr/local/bin:/usr/bin:/bin
+# The claude CLI needs its logged-in session in the aigov user's home.
+# Long analyses can take a while; cap at 30 min per session.
+TimeoutStartSec=1800
