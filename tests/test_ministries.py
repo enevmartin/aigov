@@ -35,7 +35,7 @@ class TestMinistryDeclarations:
 
     def test_all_prompt_files_exist(self, ministry_dir: Path) -> None:
         present = {p.name for p in (ministry_dir / "prompts").glob("*.md")}
-        assert REQUIRED_PROMPTS <= present
+        assert present >= REQUIRED_PROMPTS
 
     def test_guardrails_include_source_citation_rule(self, ministry_dir: Path) -> None:
         declaration = yaml.safe_load(
