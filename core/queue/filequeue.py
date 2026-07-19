@@ -105,10 +105,18 @@ class FileQueue:
     def claim(self, task_id: str) -> Path:
         """Atomically move a pending task to ``running/`` and return its path.
 
-        Raises ``FileNotFoundError`` if the task is not pending (e.g. another
-        worker won the race).
+        Touches ``task.yaml`` so staleness (``requeue_stale``) is measured
+        from the CLAIM time, not from when the task was enqueued. Raises
+        ``FileNotFoundError`` if the task is not pending (e.g. another worker
+        won the race).
         """
-        return self._move(task_id, QueueState.PENDING, QueueState.RUNNING)
+        target = self._move(task_id, QueueState.PENDING, QueueState.RUNNING)
+        os.utime(target / TASK_FILE, None)
+        return target
+
+    def release(self, task_id: str) -> Path:
+        """Return a running task to ``pending/`` (retry in a later session)."""
+        return self._move(task_id, QueueState.RUNNING, QueueState.PENDING)
 
     def complete(self, task_id: str) -> Path:
         """Move a running task to ``done/`` (brain finished writing output/)."""

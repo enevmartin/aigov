@@ -231,8 +231,12 @@ def cmd_session(config: AppConfig, dry_run: bool) -> int:
     """
     results = run_session(config, _brain_resolver(config, dry_run))
     record_session(config, results)
+    for task_id in results["resumed"]:
+        print(f"resumed {task_id} (reclaimed from a dead session)")
     for task_id in results["done"]:
         print(f"done   {task_id}")
+    for task_id in results["retried"]:
+        print(f"retry  {task_id} (will run again next session)")
     for task_id in results["failed"]:
         print(f"FAILED {task_id}")
     return 0 if not results["failed"] else 1

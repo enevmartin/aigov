@@ -89,8 +89,13 @@ def test_unresolvable_brain_fails_only_that_task(config: AppConfig) -> None:
             raise ImportError("no module named brains.fake_b")
         return FakeBrain()
 
+    # session 1: finance done; health retried (retry policy gives one more shot)
     results = run_session(config, resolver)
     assert results["done"] == ["finance-2026-07-20-digest"]
+    assert results["retried"] == ["health-2026-07-20-digest"]
+
+    # session 2: still unresolvable -> failed with the reason
+    results = run_session(config, resolver)
     assert results["failed"] == ["health-2026-07-20-digest"]
     reason = (
         queue.path(QueueState.FAILED, "health-2026-07-20-digest") / "reason.txt"

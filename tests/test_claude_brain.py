@@ -132,8 +132,13 @@ class TestCabinetSession:
         broken = queue.enqueue(make_spec("finance-2026-07-19-broken"))
         (broken / "task.yaml").write_text("ministry: [broken", encoding="utf-8")
 
+        # session 1: the broken task is retried (not yet failed), ok completes
         results = run_cabinet_session(repo, dry_run=True)
         assert results["done"] == ["finance-2026-07-19-ok"]
+        assert results["retried"] == ["finance-2026-07-19-broken"]
+
+        # session 2: second failure -> failed/ with the reason recorded
+        results = run_cabinet_session(repo, dry_run=True)
         assert results["failed"] == ["finance-2026-07-19-broken"]
         reason = (
             queue.path(QueueState.FAILED, "finance-2026-07-19-broken") / "reason.txt"
