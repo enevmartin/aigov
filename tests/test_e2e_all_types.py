@@ -15,7 +15,7 @@ import yaml
 
 from core.cli import main
 from core.config import load_config
-from core.contracts import TaskSpec, TaskType
+from core.contracts import TaskSpec
 from core.ingest import ScraperBase, collect_rss
 from core.queue import FileQueue
 from tests.test_ingest import RSS_XML
