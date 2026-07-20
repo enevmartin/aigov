@@ -108,6 +108,21 @@ def test_every_task_type_reaches_published(repo: Path) -> None:
     # --- round 2: types that compose already-published reports -----------
     assert run("enqueue", "--ministry", "finance", "--type", "weekly_report") == 0
     assert run("enqueue", "--ministry", "government", "--type", "joint_report") == 0
+    assert run("enqueue", "--ministry", "finance", "--type", "plan") == 0
+    assert run("session", "--dry-run") == 0
+    assert run("publish") == 0
+
+    # --- round 3: the operator orders a correction of a published day ----
+    finance_days = sorted(
+        p.name for p in (repo / "published" / "finance").iterdir() if p.is_dir()
+    )
+    assert (
+        run(
+            "correct", "finance", finance_days[0],
+            "--type", "news_digest", "--note", "грешно число",
+        )
+        == 0
+    )
     assert run("session", "--dry-run") == 0
     assert run("publish") == 0
 
@@ -124,13 +139,23 @@ def test_every_task_type_reaches_published(repo: Path) -> None:
     }
     # each publication type lives in its own subdir — no same-day clobbering
     assert {
-        "news_digest", "analysis", "crisis_brief", "signal_triage", "weekly_report"
+        "news_digest", "analysis", "crisis_brief", "signal_triage",
+        "weekly_report", "plan", "correction",
     } <= finance_types
 
     government_report = next(
         p for p in sorted((published / "government").rglob("report.md"))
     ).read_text(encoding="utf-8")
     assert "contributors:" in government_report
+
+    # every published report carries the second-reading stamp
+    for report_path in published.rglob("report.md"):
+        assert "reviewed: true" in report_path.read_text(encoding="utf-8"), report_path
+
+    # the corrected original gained its sidecar; institutional memory exists
+    assert list(published.rglob("corrected_by.json")), "correction sidecar missing"
+    assert (published / "finance" / "timeseries.json").is_file()
+    assert (published / "system" / "sessions.json").is_file()
 
     # queue fully drained, nothing failed
     queue = FileQueue(repo / "tasks")
