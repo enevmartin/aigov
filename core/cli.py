@@ -21,6 +21,7 @@ from typing import Any, cast
 import polars as pl
 import yaml
 
+from core.archive import history_payload
 from core.config import AppConfig, load_config
 from core.contracts import TaskSpec, TaskType, export_json_schemas
 from core.ingest import collect_rss, detect_spike
@@ -70,14 +71,19 @@ def _maybe_enqueue_crisis(config: AppConfig, slug: str, staged: Path) -> None:
         ensure_ascii=False,
         indent=2,
     ).encode("utf-8")
+    input_files = {
+        f"staging/{staged.name}": staged.read_bytes(),
+        "trigger.json": trigger_json,
+    }
+    # short history = context against false alarms
+    history = history_payload(config.root / "data" / "archive.duckdb", slug, last_n=6)
+    if history is not None:
+        input_files["history.json"] = history.encode("utf-8")
+
     queue = FileQueue(config.path("tasks"))
     try:
         # input is a COPY of the staged news (the daily digest still needs it)
-        queue.enqueue(
-            spec,
-            input_files={f"staging/{staged.name}": staged.read_bytes(),
-                         "trigger.json": trigger_json},
-        )
+        queue.enqueue(spec, input_files=input_files)
     except FileExistsError:
         return  # already triggered today
     print(f"[{slug}] CRISIS trigger {trigger.counts} -> enqueued {spec.id}")
@@ -178,6 +184,12 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
         if not input_files:
             print(f"[{ministry}] no staged data — run 'aigov ingest' first")
             return 1
+
+    # institutional memory: analyses compare against the ministry's own trend
+    if t in (TaskType.ANALYSIS, TaskType.WEEKLY_REPORT, TaskType.CRISIS_BRIEF):
+        history = history_payload(config.root / "data" / "archive.duckdb", ministry)
+        if history is not None:
+            input_files["history.json"] = history.encode("utf-8")
 
     now = datetime.now(tz=UTC)
     spec = TaskSpec(

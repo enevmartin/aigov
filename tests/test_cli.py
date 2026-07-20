@@ -78,8 +78,10 @@ class TestOperatorFlow:
         assert run(repo, "publish") == 0
         assert "published finance-" in capsys.readouterr().out
         assert (repo / "published" / "index.json").is_file()
-        published_days = list((repo / "published" / "finance").iterdir())
+        published_days = [p for p in (repo / "published" / "finance").iterdir() if p.is_dir()]
         assert len(published_days) == 1
+        # institutional memory refreshed alongside the publication
+        assert (repo / "published" / "finance" / "timeseries.json").is_file()
 
         # status shows the world
         assert run(repo, "status") == 0

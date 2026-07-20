@@ -159,7 +159,7 @@ def is_approved(task_dir: Path) -> bool:
         payload = json.loads(marker.read_text(encoding="utf-8"))
     except json.JSONDecodeError:
         return False
-    return payload.get("verdict") == "approve"
+    return bool(payload.get("verdict") == "approve")
 
 
 def approval_info(task_dir: Path) -> dict[str, object]:

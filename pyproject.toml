@@ -13,6 +13,7 @@ dependencies = [
     "feedparser>=6.0",
     "polars>=1.0",
     "python-frontmatter>=1.1",
+    "duckdb>=1.5.4",
 ]
 
 [project.scripts]

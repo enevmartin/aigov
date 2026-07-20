@@ -20,6 +20,7 @@ import frontmatter
 import yaml
 from pydantic import BaseModel
 
+from core.archive import ingest_aggregates, rebuild_timeseries
 from core.config import AppConfig
 from core.contracts import (
     OPTIONAL_ARTIFACTS,
@@ -148,6 +149,13 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         target.mkdir(parents=True, exist_ok=True)
         for name in validated:
             shutil.copy2(task_dir / "output" / name, target / name)
+
+        # institutional memory: archive the numbers, refresh the public series
+        aggregates = validated.get("aggregates.json")
+        if isinstance(aggregates, Aggregates):
+            db_path = config.root / "data" / "archive.duckdb"
+            ingest_aggregates(db_path, aggregates)
+            rebuild_timeseries(db_path, published_root, spec.ministry)
 
         shutil.rmtree(task_dir)
         results["published"].append(task_id)

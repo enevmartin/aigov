@@ -29,6 +29,9 @@ data/raw/*
 !data/raw/.gitkeep
 data/staging/*
 !data/staging/.gitkeep
+# local analytical archive — rebuildable; the PUBLIC archive is
+# published/{ministry}/timeseries.json
+data/archive.duckdb
 
 # ---- Runtime task queue (ephemeral working state; keep the dirs) ----
 tasks/*/*
