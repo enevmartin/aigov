@@ -114,7 +114,11 @@ def apply_verdict(config: AppConfig, queue: FileQueue, review_id: str) -> str:
             else 0
         )
         if revisions >= MAX_REVISIONS:
-            queue.fail(original_id, "second revise verdict from review", source_state=QueueState.REVIEW)
+            queue.fail(
+                original_id,
+                "second revise verdict from review",
+                source_state=QueueState.REVIEW,
+            )
             record_event(
                 config,
                 kind="task_failed",
