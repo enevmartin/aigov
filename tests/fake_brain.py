@@ -95,6 +95,17 @@ class FakeBrain:
             # contributors derived from input/ layout: input/published/{slug}/...
             slugs = sorted({name.split("/")[1] for name in input_files if "/" in name})
             front["contributors"] = slugs if len(slugs) >= 2 else ["finance", "health"]
+        if spec.type is TaskType.CORRECTION:
+            request = json.loads(
+                (output.parent / "input" / "correction_request.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            front["corrects"] = {
+                "ministry": request["ministry"],
+                "date": request["date"],
+                "type": request.get("type"),
+            }
         body = (
             f"## Анализ\n\nЗадача `{spec.id}` от тип `{spec.type.value}`.\n\n"
             + "Входни файлове:\n"

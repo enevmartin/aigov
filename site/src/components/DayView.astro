@@ -36,6 +36,26 @@ const confidenceLabel: Record<string, string> = {
         {day.report.contributors.map((slug) => names[slug] ?? slug).join(" · ")}
       </p>
     )}
+    {day.report?.corrects && (
+      <p class="trigger-line">
+        <span class="tag corrected">Поправка</span>
+        {" "}на публикацията от{" "}
+        <a href={`/${day.report.corrects.ministry}/${day.report.corrects.date}/`}>
+          {day.report.corrects.date}
+        </a>
+      </p>
+    )}
+    {day.correctedBy.length > 0 && (
+      <div class="corrected-banner">
+        <span class="tag corrected">Поправен</span>
+        <span>
+          Тази публикация е поправена от:{" "}
+          {day.correctedBy.map((c) => (
+            <a href={`/${c.ministry}/${c.date}/`}>{c.date}</a>
+          ))}
+        </span>
+      </div>
+    )}
   </header>
 
   {day.aggregates && day.aggregates.series.length > 0 && (
@@ -161,6 +181,24 @@ const confidenceLabel: Record<string, string> = {
   }
   .tag.crisis-high {
     background: #f8d7d7;
+  }
+  .tag.corrected {
+    background: #fdf3d7;
+    color: #8a6100;
+  }
+  .corrected-banner {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    margin-top: 10px;
+    padding: 10px 14px;
+    border: 1px solid #ecdcae;
+    border-radius: 8px;
+    background: #fdf8e9;
+    font-size: 14px;
+  }
+  .corrected-banner a {
+    margin-right: 6px;
   }
   .trigger-line {
     margin: 4px 0 0;

@@ -27,6 +27,7 @@ from core.contracts import (
     REPORT_MODEL,
     REQUIRED_ARTIFACTS,
     Aggregates,
+    CorrectionReport,
     NewsDigest,
     Report,
     SignalStats,
@@ -137,6 +138,16 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         _stamp_review(task_dir / "output" / "report.md", approval_info(task_dir))
         try:
             validated = validate_output(task_dir / "output", spec)
+            report = validated.get("report.md")
+            if isinstance(report, CorrectionReport):
+                original_dir = published_root / report.corrects.ministry / (
+                    report.corrects.date.isoformat()
+                )
+                if not original_dir.is_dir():
+                    raise OutputRejected(
+                        f"correction references unknown publication "
+                        f"{report.corrects.ministry}/{report.corrects.date}"
+                    )
         except OutputRejected as exc:
             queue.fail(task_id, str(exc), source_state=QueueState.DONE)
             results["rejected"].append(task_id)
@@ -157,12 +168,46 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
             ingest_aggregates(db_path, aggregates)
             rebuild_timeseries(db_path, published_root, spec.ministry)
 
+        # corrections: the original is NEVER edited — it gains a sidecar
+        if isinstance(report, CorrectionReport):
+            _link_correction(published_root, report, day)
+
         shutil.rmtree(task_dir)
         results["published"].append(task_id)
 
     if results["published"]:
         rebuild_index(published_root, ministry_names(config), cabinet_roster(config))
     return results
+
+
+CORRECTED_BY_FILE = "corrected_by.json"
+
+
+def _link_correction(published_root: Path, correction: CorrectionReport, day: str) -> None:
+    """Attach a ``corrected_by.json`` sidecar to the ORIGINAL publication.
+
+    The original artifacts stay byte-identical (history is inviolable);
+    only this new metadata file appears next to them.
+    """
+    original_dir = published_root / correction.corrects.ministry / (
+        correction.corrects.date.isoformat()
+    )
+    sidecar = original_dir / CORRECTED_BY_FILE
+    payload: dict[str, list[dict[str, str]]] = {"corrections": []}
+    if sidecar.is_file():
+        payload = json.loads(sidecar.read_text(encoding="utf-8"))
+    entry = {
+        "ministry": correction.ministry,
+        "date": day,
+        "title": correction.title,
+        "summary": correction.summary,
+    }
+    payload["corrections"] = [
+        c for c in payload["corrections"] if c.get("date") != day
+    ] + [entry]
+    sidecar.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def ministry_names(config: AppConfig) -> dict[str, str]:

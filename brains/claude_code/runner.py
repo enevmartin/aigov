@@ -36,6 +36,7 @@ PROMPT_FILES: dict[TaskType, str] = {
     TaskType.JOINT_REPORT: "joint.md",
     TaskType.SIGNAL_TRIAGE: "signals.md",
     TaskType.REVIEW: "review.md",
+    TaskType.CORRECTION: "correction.md",
 }
 
 CONTRACT_INSTRUCTIONS = """\

@@ -258,6 +258,44 @@ def cmd_session(config: AppConfig, dry_run: bool) -> int:
     return 0 if not results["failed"] else 1
 
 
+def cmd_correct(config: AppConfig, ministry: str, date: str, note: str | None) -> int:
+    """Enqueue a correction task for the publication at *ministry*/*date*.
+
+    The original is never edited or deleted; the correction is its own
+    publication (through the same session + review pipeline) and the
+    original gains a ``corrected_by.json`` sidecar at publish time.
+    """
+    original_dir = config.path("published") / ministry / date
+    if not original_dir.is_dir():
+        print(f"no publication at published/{ministry}/{date}")
+        return 1
+
+    input_files: dict[str, bytes] = {
+        f"original/{p.name}": p.read_bytes()
+        for p in sorted(original_dir.iterdir())
+        if p.is_file()
+    }
+    request = {
+        "ministry": ministry,
+        "date": date,
+        "note": note or "не е посочена конкретна бележка — провери всички твърдения",
+    }
+    input_files["correction_request.json"] = json.dumps(
+        request, ensure_ascii=False, indent=2
+    ).encode("utf-8")
+
+    now = datetime.now(tz=UTC)
+    spec = TaskSpec(
+        id=f"{ministry}-{now.strftime('%Y-%m-%d-%H%M%S')}-correction",
+        ministry=ministry,
+        type=TaskType.CORRECTION,
+        created=now,
+    )
+    FileQueue(config.path("tasks")).enqueue(spec, input_files=input_files)
+    print(f"enqueued {spec.id} correcting published/{ministry}/{date}")
+    return 0
+
+
 def cmd_export(config: AppConfig, ministry: str, brain: str) -> int:
     """Export a ministry as the framework-specific artifact of *brain*."""
     exporter = importlib.import_module(f"brains.{brain}.exporter")
@@ -314,8 +352,13 @@ def main(argv: list[str] | None = None) -> int:
     p_enqueue.add_argument(
         "--type",
         default=TaskType.NEWS_DIGEST.value,
-        # review tasks are created automatically by the session, never enqueued by hand
-        choices=[t.value for t in TaskType if t is not TaskType.REVIEW],
+        # review is created automatically by the session; correction has its
+        # own command (aigov correct) that assembles the right input
+        choices=[
+            t.value
+            for t in TaskType
+            if t not in (TaskType.REVIEW, TaskType.CORRECTION)
+        ],
         dest="task_type",
     )
 
@@ -333,6 +376,13 @@ def main(argv: list[str] | None = None) -> int:
     p_export.add_argument("--ministry", required=True)
     p_export.add_argument("--brain", required=True, help="claude_code | openclaw | api")
 
+    p_correct = sub.add_parser(
+        "correct", help="enqueue a correction for a past publication"
+    )
+    p_correct.add_argument("ministry")
+    p_correct.add_argument("date", help="publication date YYYY-MM-DD")
+    p_correct.add_argument("--note", help="what is wrong (operator note for the minister)")
+
     args = parser.parse_args(argv)
     config = load_config(args.root.resolve())
 
@@ -346,6 +396,8 @@ def main(argv: list[str] | None = None) -> int:
         return cmd_publish(config)
     if args.command == "export":
         return cmd_export(config, args.ministry, args.brain)
+    if args.command == "correct":
+        return cmd_correct(config, args.ministry, args.date, args.note)
     return cmd_status(config)
 
 

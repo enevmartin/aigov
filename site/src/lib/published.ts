@@ -44,11 +44,22 @@ export interface ReportMeta {
   title: string;
   summary: string;
   sources: Source[];
+  reviewed?: boolean;
+  reviewer?: string | null;
   /** crisis_brief only */
   confidence?: "low" | "medium" | "high";
   trigger_keywords?: string[];
   /** joint_report only */
   contributors?: string[];
+  /** correction only */
+  corrects?: { ministry: string; date: string; type?: string | null };
+}
+
+export interface CorrectionLink {
+  ministry: string;
+  date: string;
+  title: string;
+  summary: string;
 }
 
 export interface Series {
@@ -94,6 +105,8 @@ export interface PublishedDay {
   aggregates: Aggregates | null;
   news: NewsDigest | null;
   signals: SignalStats | null;
+  /** set when a later correction publication amends this day */
+  correctedBy: CorrectionLink[];
 }
 
 export interface SourceHealth {
@@ -183,6 +196,11 @@ export function loadDay(slug: string, date: string): PublishedDay {
     reportHtml = marked.parse(parsed.content, { async: false }) as string;
   }
 
+  const correctedBy =
+    readJson<{ corrections: CorrectionLink[] }>(
+      path.join(dayDir, "corrected_by.json"),
+    )?.corrections ?? [];
+
   return {
     slug,
     date,
@@ -191,6 +209,7 @@ export function loadDay(slug: string, date: string): PublishedDay {
     aggregates: readJson<Aggregates>(path.join(dayDir, "aggregates.json")),
     news: readJson<NewsDigest>(path.join(dayDir, "news.json")),
     signals: readJson<SignalStats>(path.join(dayDir, "signals.json")),
+    correctedBy,
   };
 }
 

@@ -26,6 +26,7 @@ class TaskType(StrEnum):
     JOINT_REPORT = "joint_report"    # "prime minister" composes published reports
     SIGNAL_TRIAGE = "signal_triage"  # citizen signals -> aggregate stats (phase 3)
     REVIEW = "review"                # second reading of another task's output
+    CORRECTION = "correction"        # first-class correction of a past publication
 
 
 class TaskSpec(BaseModel):
@@ -192,6 +193,27 @@ class JointReport(Report):
     contributors: list[str] = Field(min_length=2)
 
 
+class CorrectionRef(BaseModel):
+    """Reference to the publication a correction amends."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    ministry: str = Field(min_length=1)
+    date: Date
+    type: str | None = None  # original task type, when known
+
+
+class CorrectionReport(Report):
+    """``report.md`` front-matter for a correction.
+
+    History is inviolable: the original is NEVER edited or deleted — the
+    correction is its own publication carrying ``corrects``, and the
+    original gains a ``corrected_by.json`` sidecar written by core/publish.
+    """
+
+    corrects: CorrectionRef
+
+
 class SignalCategoryStat(BaseModel):
     """One anonymized category bucket of citizen signals."""
 
@@ -271,6 +293,7 @@ REQUIRED_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.JOINT_REPORT: ("report.md",),
     TaskType.SIGNAL_TRIAGE: ("signals.json",),
     TaskType.REVIEW: ("review.json",),
+    TaskType.CORRECTION: ("report.md",),
 }
 
 OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
@@ -281,6 +304,7 @@ OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.JOINT_REPORT: ("aggregates.json",),
     TaskType.SIGNAL_TRIAGE: ("report.md",),
     TaskType.REVIEW: (),
+    TaskType.CORRECTION: ("aggregates.json",),  # corrected numbers, when numeric
 }
 
 # Which model validates report.md front-matter for each type.
@@ -292,4 +316,5 @@ REPORT_MODEL: dict[TaskType, type[Report]] = {
     TaskType.JOINT_REPORT: JointReport,
     TaskType.SIGNAL_TRIAGE: Report,
     TaskType.REVIEW: Report,  # reviews are never published; entry for completeness
+    TaskType.CORRECTION: CorrectionReport,
 }
