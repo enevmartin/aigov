@@ -17,6 +17,15 @@ import yaml
 from brains.base import ArtifactSet
 from core.contracts import REQUIRED_ARTIFACTS, TaskSpec, TaskType
 
+
+def approve_marker(task_dir: Path) -> None:
+    """Test utility: stamp a task as review-approved (bypasses a session)."""
+    marker = {"verdict": "approve", "notes": [], "reviewer": "test-approver"}
+    (task_dir / "review.json").write_text(
+        json.dumps(marker, ensure_ascii=False), encoding="utf-8"
+    )
+
+
 FAKE_SOURCE = {
     "url": "https://example.bg/fake-source",
     "title": "Тестов източник (fake brain)",
@@ -52,8 +61,17 @@ class FakeBrain:
             self._write_news(output, spec, day, source)
         if "signals.json" in required:
             self._write_signals(output, spec, day)
+        if "review.json" in required:
+            self._write_review(output)
 
         return ArtifactSet.from_output_dir(output)
+
+    def _write_review(self, output: Path) -> None:
+        """The fake reviewer approves deterministically (tests override this)."""
+        review = {"verdict": "approve", "notes": [], "reviewer": "fake-brain"}
+        (output / "review.json").write_text(
+            json.dumps(review, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     def _write_report(
         self,

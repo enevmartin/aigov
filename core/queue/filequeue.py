@@ -28,14 +28,21 @@ REASON_FILE = "reason.txt"
 
 
 class QueueState:
-    """The four queue states (directory names under the queue root)."""
+    """The queue states (directory names under the queue root).
+
+    ``REVIEW`` holds originals awaiting their second reading: the task
+    finished (``done``), core moved it here and enqueued a review task;
+    the verdict sends it back to ``done`` (approved) or ``pending``
+    (revise) — see ``core/review.py``.
+    """
 
     PENDING = "pending"
     RUNNING = "running"
     DONE = "done"
+    REVIEW = "review"
     FAILED = "failed"
 
-    ALL = (PENDING, RUNNING, DONE, FAILED)
+    ALL = (PENDING, RUNNING, DONE, REVIEW, FAILED)
 
 
 class FileQueue:
@@ -110,25 +117,26 @@ class FileQueue:
         ``FileNotFoundError`` if the task is not pending (e.g. another worker
         won the race).
         """
-        target = self._move(task_id, QueueState.PENDING, QueueState.RUNNING)
+        target = self.move(task_id, QueueState.PENDING, QueueState.RUNNING)
         os.utime(target / TASK_FILE, None)
         return target
 
     def release(self, task_id: str) -> Path:
         """Return a running task to ``pending/`` (retry in a later session)."""
-        return self._move(task_id, QueueState.RUNNING, QueueState.PENDING)
+        return self.move(task_id, QueueState.RUNNING, QueueState.PENDING)
 
     def complete(self, task_id: str) -> Path:
         """Move a running task to ``done/`` (brain finished writing output/)."""
-        return self._move(task_id, QueueState.RUNNING, QueueState.DONE)
+        return self.move(task_id, QueueState.RUNNING, QueueState.DONE)
 
     def fail(self, task_id: str, reason: str, source_state: str = QueueState.RUNNING) -> Path:
         """Move a task to ``failed/`` and record *reason* in ``reason.txt``."""
-        target = self._move(task_id, source_state, QueueState.FAILED)
+        target = self.move(task_id, source_state, QueueState.FAILED)
         (target / REASON_FILE).write_text(reason, encoding="utf-8")
         return target
 
-    def _move(self, task_id: str, src: str, dst: str) -> Path:
+    def move(self, task_id: str, src: str, dst: str) -> Path:
+        """Atomically move a task between states (building block for flows)."""
         source = self.path(src, task_id)
         if not source.is_dir():
             raise FileNotFoundError(f"task {task_id!r} not found in {src}/")
@@ -168,6 +176,6 @@ class FileQueue:
                 continue
             age = now - datetime.fromtimestamp(marker.stat().st_mtime, tz=UTC)
             if age > older_than:
-                self._move(task_id, QueueState.RUNNING, QueueState.PENDING)
+                self.move(task_id, QueueState.RUNNING, QueueState.PENDING)
                 requeued.append(task_id)
         return requeued

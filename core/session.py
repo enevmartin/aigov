@@ -81,10 +81,17 @@ def run_session(config: AppConfig, resolver: BrainResolver) -> dict[str, list[st
     """Process ALL pending tasks in one batch, resolving the brain per task.
 
     Starts by reclaiming tasks stranded in ``running/`` by a dead session
-    (older than :data:`STALE_AFTER`). Returns ``{"done": [...], "failed":
-    [...], "retried": [...], "resumed": [...]}`` — ``retried`` tasks are back
-    in ``pending/`` for the NEXT session; ``resumed`` are stale tasks this
-    session reclaimed and processed.
+    (older than :data:`STALE_AFTER`).
+
+    Second reading (чл. фаза-3): when an ORIGINAL task completes, the core
+    parks it in ``review/`` and enqueues its review task, which this same
+    session then processes (the drain loop picks up newly enqueued work).
+    A completed review task is consumed immediately: approve returns the
+    original to ``done/`` (publishable), revise sends it back to
+    ``pending/`` for the NEXT session (bounded by the revision limit).
+
+    Returns ``{"done": [...], "failed": [...], "retried": [...], "resumed":
+    [...], "approved": [...], "revised": [...]}``.
     """
     queue = FileQueue(config.path("tasks"))
     resumed = queue.requeue_stale(STALE_AFTER)
@@ -93,29 +100,67 @@ def run_session(config: AppConfig, resolver: BrainResolver) -> dict[str, list[st
         "failed": [],
         "retried": [],
         "resumed": resumed,
+        "approved": [],
+        "revised": [],
     }
 
-    for task_id in queue.list_tasks(QueueState.PENDING):
-        ministry: str | None = None
-        try:
-            spec = queue.load_spec(QueueState.PENDING, task_id)
-            ministry = spec.ministry
-            runner = resolver(config.brain_for(spec.ministry))
-        except Exception as exc:  # noqa: BLE001 — unreadable spec/unknown brain
-            queue.claim(task_id)
-            _handle_failure(
-                config, queue, task_id, ministry, f"{type(exc).__name__}: {exc}", results
-            )
-            continue
-
-        running = queue.claim(task_id)
-        try:
-            runner.run(running)
-        except Exception as exc:  # noqa: BLE001 — any brain failure fails only this task
-            _handle_failure(
-                config, queue, task_id, ministry, f"{type(exc).__name__}: {exc}", results
-            )
-        else:
-            queue.complete(task_id)
-            results["done"].append(task_id)
+    processed: set[str] = set()
+    while True:
+        pending = [t for t in queue.list_tasks(QueueState.PENDING) if t not in processed]
+        if not pending:
+            break
+        for task_id in pending:
+            processed.add(task_id)
+            _run_one(config, queue, resolver, task_id, results)
     return results
+
+
+def _run_one(
+    config: AppConfig,
+    queue: FileQueue,
+    resolver: BrainResolver,
+    task_id: str,
+    results: dict[str, list[str]],
+) -> None:
+    """Claim, run and post-process a single task (incl. review bookkeeping)."""
+    from core import review as review_flow  # local import: keep module deps one-way
+
+    ministry: str | None = None
+    try:
+        spec = queue.load_spec(QueueState.PENDING, task_id)
+        ministry = spec.ministry
+        runner = resolver(config.brain_for(spec.ministry))
+    except Exception as exc:  # noqa: BLE001 — unreadable spec/unknown brain
+        queue.claim(task_id)
+        _handle_failure(
+            config, queue, task_id, ministry, f"{type(exc).__name__}: {exc}", results
+        )
+        return
+
+    running = queue.claim(task_id)
+    try:
+        runner.run(running)
+    except Exception as exc:  # noqa: BLE001 — any brain failure fails only this task
+        _handle_failure(
+            config, queue, task_id, ministry, f"{type(exc).__name__}: {exc}", results
+        )
+        return
+
+    queue.complete(task_id)
+    if spec.type.value == "review":
+        try:
+            outcome = review_flow.apply_verdict(config, queue, task_id)
+        except Exception as exc:  # noqa: BLE001 — a broken review must not stop the session
+            queue.fail(task_id, f"invalid review output: {type(exc).__name__}: {exc}")
+            results["failed"].append(task_id)
+            return
+        original = review_flow.original_task_id(task_id)
+        if outcome == "approved":
+            results["approved"].append(original)
+        elif outcome == "revised":
+            results["revised"].append(original)
+        else:
+            results["failed"].append(original)
+    else:
+        results["done"].append(task_id)
+        review_flow.create_review_task(queue, task_id)

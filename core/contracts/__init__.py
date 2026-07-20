@@ -19,6 +19,8 @@ from core.contracts.models import (
     NewsDigest,
     NewsItem,
     Report,
+    ReviewResult,
+    ReviewVerdict,
     SignalCategoryStat,
     SignalStats,
     SourceCitation,
@@ -29,6 +31,8 @@ from core.contracts.models import (
 )
 
 __all__ = [
+    "ReviewResult",
+    "ReviewVerdict",
     "OPTIONAL_ARTIFACTS",
     "REPORT_MODEL",
     "REQUIRED_ARTIFACTS",

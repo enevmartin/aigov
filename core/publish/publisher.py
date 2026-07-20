@@ -46,6 +46,20 @@ class OutputRejected(Exception):
     """Brain output failed validation; the reason becomes ``reason.txt``."""
 
 
+def _stamp_review(report_path: Path, approval: dict[str, object]) -> None:
+    """Write ``reviewed: true, reviewer: <агент>`` into the front-matter.
+
+    Stamped by the CORE after an approved second reading — a brain writing
+    these fields itself is overwritten here, so the stamp is trustworthy.
+    """
+    if not report_path.is_file() or not approval:
+        return
+    post = frontmatter.loads(report_path.read_text(encoding="utf-8"))
+    post.metadata["reviewed"] = True
+    post.metadata["reviewer"] = approval.get("reviewer", "unknown")
+    report_path.write_text(frontmatter.dumps(post) + "\n", encoding="utf-8")
+
+
 def _validate_report(path: Path, model: type[Report]) -> Report:
     try:
         post = frontmatter.loads(path.read_text(encoding="utf-8"))
@@ -99,19 +113,27 @@ def validate_output(output_dir: Path, spec: TaskSpec) -> dict[str, BaseModel]:
 
 
 def publish_all(config: AppConfig) -> dict[str, list[str]]:
-    """Publish every task in ``done/``; reject invalid ones to ``failed/``.
+    """Publish every APPROVED task in ``done/``; reject invalid ones.
 
-    A published task directory is deleted from the queue (its artifacts now
-    live in ``published/``; the queue is working state, not an archive).
-    Returns ``{"published": [...ids], "rejected": [...ids]}``.
+    Second reading is mandatory: tasks in ``done/`` without an approve
+    marker are skipped (they are awaiting review, or their review is still
+    queued) and reported under ``"unreviewed"``. A published task directory
+    is deleted from the queue (its artifacts now live in ``published/``).
+    Returns ``{"published": [...], "rejected": [...], "unreviewed": [...]}``.
     """
+    from core.review import approval_info, is_approved  # one-way dep: publish -> review
+
     queue = FileQueue(config.path("tasks"))
     published_root = config.path("published")
-    results: dict[str, list[str]] = {"published": [], "rejected": []}
+    results: dict[str, list[str]] = {"published": [], "rejected": [], "unreviewed": []}
 
     for task_id in queue.list_tasks(QueueState.DONE):
         spec = queue.load_spec(QueueState.DONE, task_id)
         task_dir = queue.path(QueueState.DONE, task_id)
+        if not is_approved(task_dir):
+            results["unreviewed"].append(task_id)
+            continue
+        _stamp_review(task_dir / "output" / "report.md", approval_info(task_dir))
         try:
             validated = validate_output(task_dir / "output", spec)
         except OutputRejected as exc:

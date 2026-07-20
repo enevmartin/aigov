@@ -22,7 +22,7 @@ from core.contracts import (
 )
 from core.publish import publish_all
 from core.queue import FileQueue, QueueState
-from tests.fake_brain import FakeBrain
+from tests.fake_brain import FakeBrain, approve_marker
 
 CITATION = {
     "url": "https://www.bnb.bg/Statistics/",
@@ -132,7 +132,8 @@ def run_type(config: AppConfig, task_type: str, ministry: str = "finance") -> Fi
     queue.enqueue(spec, input_files=input_files)
     queue.claim(task_id)
     FakeBrain().run(queue.path(QueueState.RUNNING, task_id))
-    queue.complete(task_id)
+    done = queue.complete(task_id)
+    approve_marker(done)  # simulate a passed second reading
     return queue
 
 

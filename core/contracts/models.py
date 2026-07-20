@@ -25,6 +25,7 @@ class TaskType(StrEnum):
     CRISIS_BRIEF = "crisis_brief"    # keyword spike detected by core (no LLM)
     JOINT_REPORT = "joint_report"    # "prime minister" composes published reports
     SIGNAL_TRIAGE = "signal_triage"  # citizen signals -> aggregate stats (phase 3)
+    REVIEW = "review"                # second reading of another task's output
 
 
 class TaskSpec(BaseModel):
@@ -77,6 +78,9 @@ class Report(BaseModel):
     sources: list[SourceCitation] = Field(
         min_length=1, description="Legal guardrail: a report with no sources is invalid"
     )
+    # Stamped by core/publish after an approved review (never by the brain).
+    reviewed: bool = False
+    reviewer: str | None = None
 
 
 class AggregateSeries(BaseModel):
@@ -130,6 +134,33 @@ class NewsDigest(BaseModel):
     ministry: str = Field(min_length=1)
     date: Date
     items: list[NewsItem] = Field(min_length=1)
+
+
+class ReviewVerdict(StrEnum):
+    """Outcome of a second reading."""
+
+    APPROVE = "approve"
+    REVISE = "revise"
+
+
+class ReviewResult(BaseModel):
+    """``review.json`` — the output of a review task.
+
+    ``revise`` must explain itself: notes are mandatory so the original
+    minister knows exactly what to fix.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    verdict: ReviewVerdict
+    notes: list[str] = Field(default_factory=list)
+    reviewer: str | None = None
+
+    @model_validator(mode="after")
+    def _revise_needs_notes(self) -> Self:
+        if self.verdict is ReviewVerdict.REVISE and not self.notes:
+            raise ValueError("a revise verdict must include concrete notes")
+        return self
 
 
 class Confidence(StrEnum):
@@ -239,6 +270,7 @@ REQUIRED_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.CRISIS_BRIEF: ("report.md",),
     TaskType.JOINT_REPORT: ("report.md",),
     TaskType.SIGNAL_TRIAGE: ("signals.json",),
+    TaskType.REVIEW: ("review.json",),
 }
 
 OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
@@ -248,6 +280,7 @@ OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.CRISIS_BRIEF: ("aggregates.json",),
     TaskType.JOINT_REPORT: ("aggregates.json",),
     TaskType.SIGNAL_TRIAGE: ("report.md",),
+    TaskType.REVIEW: (),
 }
 
 # Which model validates report.md front-matter for each type.
@@ -258,4 +291,5 @@ REPORT_MODEL: dict[TaskType, type[Report]] = {
     TaskType.CRISIS_BRIEF: CrisisReport,
     TaskType.JOINT_REPORT: JointReport,
     TaskType.SIGNAL_TRIAGE: Report,
+    TaskType.REVIEW: Report,  # reviews are never published; entry for completeness
 }

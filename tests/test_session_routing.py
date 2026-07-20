@@ -66,8 +66,15 @@ def test_each_ministry_processed_by_its_own_brain(config: AppConfig) -> None:
         "finance-2026-07-20-digest",
         "health-2026-07-20-digest",
     ]
-    assert brains["fake_a"].seen == ["finance-2026-07-20-digest"]  # global brain
-    assert brains["fake_b"].seen == ["health-2026-07-20-digest"]   # override
+    # each brain saw its own ministry's task AND its review (same brain reviews)
+    assert brains["fake_a"].seen == [
+        "finance-2026-07-20-digest",
+        "finance-2026-07-20-digest-review",
+    ]
+    assert brains["fake_b"].seen == [
+        "health-2026-07-20-digest",
+        "health-2026-07-20-digest-review",
+    ]
     assert len(queue.list_tasks(QueueState.DONE)) == 2
 
 
@@ -77,7 +84,10 @@ def test_unknown_ministry_falls_back_to_global_brain(config: AppConfig) -> None:
     brains = {"fake_a": RecordingFakeBrain("a"), "fake_b": RecordingFakeBrain("b")}
     results = run_session(config, lambda name: brains[name])
     assert results["done"] == ["mystery-2026-07-20-digest"]
-    assert brains["fake_a"].seen == ["mystery-2026-07-20-digest"]
+    assert brains["fake_a"].seen == [
+        "mystery-2026-07-20-digest",
+        "mystery-2026-07-20-digest-review",
+    ]
 
 
 def test_unresolvable_brain_fails_only_that_task(config: AppConfig) -> None:

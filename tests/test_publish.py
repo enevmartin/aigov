@@ -11,7 +11,7 @@ from core.config import AppConfig
 from core.contracts import TaskSpec
 from core.publish import publish_all, rebuild_index
 from core.queue import FileQueue, QueueState
-from tests.fake_brain import FakeBrain
+from tests.fake_brain import FakeBrain, approve_marker
 
 
 @pytest.fixture
@@ -31,7 +31,8 @@ def run_task_through_fake_brain(
     queue.enqueue(spec, input_files={"staging/rss.parquet": b"data"})
     running = queue.claim(task_id)
     FakeBrain().run(running)
-    queue.complete(task_id)
+    done = queue.complete(task_id)
+    approve_marker(done)  # simulate a passed second reading
     return queue
 
 

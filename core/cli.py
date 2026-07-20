@@ -235,6 +235,10 @@ def cmd_session(config: AppConfig, dry_run: bool) -> int:
         print(f"resumed {task_id} (reclaimed from a dead session)")
     for task_id in results["done"]:
         print(f"done   {task_id}")
+    for task_id in results["approved"]:
+        print(f"approved {task_id} (second reading passed)")
+    for task_id in results["revised"]:
+        print(f"revise  {task_id} (sent back with review notes)")
     for task_id in results["retried"]:
         print(f"retry  {task_id} (will run again next session)")
     for task_id in results["failed"]:
@@ -256,6 +260,8 @@ def cmd_publish(config: AppConfig) -> int:
     results = publish_all(config)
     for task_id in results["published"]:
         print(f"published {task_id}")
+    for task_id in results["unreviewed"]:
+        print(f"awaiting review: {task_id} (will publish after approval)")
     for task_id in results["rejected"]:
         print(f"REJECTED  {task_id} (see tasks/failed/{task_id}/reason.txt)")
     return 0 if not results["rejected"] else 1
@@ -296,7 +302,8 @@ def main(argv: list[str] | None = None) -> int:
     p_enqueue.add_argument(
         "--type",
         default=TaskType.NEWS_DIGEST.value,
-        choices=[t.value for t in TaskType],
+        # review tasks are created automatically by the session, never enqueued by hand
+        choices=[t.value for t in TaskType if t is not TaskType.REVIEW],
         dest="task_type",
     )
 
