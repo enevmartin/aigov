@@ -1,0 +1,224 @@
+---
+import Base from "../layouts/Base.astro";
+import {
+  loadCabinet,
+  loadHealth,
+  loadIndex,
+  loadTimeseries,
+  ministryName,
+} from "../lib/published";
+
+const index = loadIndex();
+const health = loadHealth();
+const withSeries = loadCabinet(index)
+  .map((m) => ({ member: m, ts: loadTimeseries(m.slug) }))
+  .filter((x) => x.ts && x.ts.series.length > 0);
+
+function fmt(ts?: string | null): string {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" });
+}
+---
+
+<Base title="Данни" description="Всички серии на дашборда — разглеждаеми и сваляеми; източници и методология.">
+  <h1>Данни</h1>
+  <p class="lead">
+    Прозрачност до последното число: всяка серия от дашборда е разглеждаема
+    и сваляема, всеки източник — с публичен статус.
+  </p>
+
+  <h2 class="section-title">Серии по министерство</h2>
+  {withSeries.length === 0 && (
+    <p class="muted card">Още няма публикувани серии.</p>
+  )}
+  {withSeries.map(({ member, ts }) => (
+    <section class="card series-block">
+      <div class="series-head">
+        <h3>{ministryName(index, member.slug)}</h3>
+        <span class="downloads">
+          <a class="dl" href={`/danni/${member.slug}.json`} download>JSON</a>
+          <a class="dl" href={`/danni/${member.slug}.csv`} download>CSV</a>
+        </span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Показател</th>
+              <th>Мярка</th>
+              <th>Точки</th>
+              <th>Последна стойност</th>
+              <th>Източник</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ts!.series.map((s) => {
+              const last = s.points[s.points.length - 1];
+              return (
+                <tr>
+                  <td>{s.name}</td>
+                  <td>{s.unit}</td>
+                  <td>{s.points.length}</td>
+                  <td>
+                    {last
+                      ? `${last.value.toLocaleString("bg-BG")} (${last.label})`
+                      : "—"}
+                  </td>
+                  <td>
+                    <a href={s.source.url} rel="noopener">{s.source.title}</a>
+                    <span class="muted"> · {s.source.retrieved}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  ))}
+
+  <h2 class="section-title">Източници и статус</h2>
+  <section class="card">
+    {(!health || health.sources.length === 0) && (
+      <p class="muted">Статусът се появява след първото събиране на данни.</p>
+    )}
+    {health && health.sources.length > 0 && (
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Министерство</th>
+              <th>Източник</th>
+              <th>Статус</th>
+              <th>Последно извличане</th>
+            </tr>
+          </thead>
+          <tbody>
+            {health.sources.map((s) => (
+              <tr>
+                <td>{ministryName(index, s.ministry)}</td>
+                <td><a href={s.url} rel="noopener">{s.name}</a></td>
+                <td>
+                  <span class={`status status-${s.status}`}>
+                    {s.status === "ok" ? "работи" : "влошен"}
+                  </span>
+                </td>
+                <td>{fmt(s.last_ok)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    )}
+    <p class="muted note">
+      Пълните декларации на източниците (вкл. изключените и причините) са в
+      <a href="https://github.com/enevmartin/aigov/tree/main/ministries" rel="noopener">
+        ministries/*/ministry.yaml
+      </a>.
+    </p>
+  </section>
+
+  <h2 class="section-title">Методология</h2>
+  <section class="card method">
+    <ol>
+      <li>
+        <strong>Събиране.</strong> Чист Python на всеки час: RSS и отворени
+        данни, с ≥1.5 s пауза между заявките и честен User-Agent. Суровите
+        данни са ефимерни — пазят се само агрегати и отчети.
+      </li>
+      <li>
+        <strong>Задачи.</strong> Данните стават файлови задачи (task.yaml +
+        input/). Детекциите — напр. кризисният тригер — са детерминистичен
+        код, не AI.
+      </li>
+      <li>
+        <strong>Анализ.</strong> AI министърът работи само върху входните
+        файлове; всяко твърдение трябва да е проследимо до източник.
+      </li>
+      <li>
+        <strong>Второ четене.</strong> Друг AI преглед проверява източници,
+        съответствие на числата и правните предпазители. „Одобрен" или
+        „върнат за поправка" — без изключения; непрегледано не се публикува.
+      </li>
+      <li>
+        <strong>Валидация и публикация.</strong> Машинна проверка срещу
+        схемите (pydantic): отчет без източници или с разминаващи се числа
+        физически не може да бъде публикуван. Оригиналите никога не се
+        редактират — поправките са отделни публикации.
+      </li>
+    </ol>
+  </section>
+</Base>
+
+<style>
+  .section-title {
+    font-size: 22px;
+    margin: 30px 0 14px;
+  }
+  .series-block {
+    margin-bottom: 16px;
+  }
+  .series-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .series-head h3 {
+    margin: 0 0 10px;
+    font-size: 17.5px;
+  }
+  .dl {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 2px 12px;
+    margin-left: 6px;
+  }
+  .dl:hover {
+    background: var(--accent-soft);
+  }
+  .table-wrap {
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    font-size: 14px;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 7px 12px 7px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .status {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 1px 10px;
+    font-size: 12.5px;
+    font-weight: 600;
+  }
+  .status-ok {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .status-degraded {
+    background: var(--bad-bg);
+    color: var(--bad);
+  }
+  .note {
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .method ol {
+    margin: 0;
+    padding-left: 22px;
+  }
+  .method li {
+    margin-bottom: 10px;
+  }
+</style>

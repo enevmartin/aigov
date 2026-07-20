@@ -1,0 +1,197 @@
+---
+import Base from "../layouts/Base.astro";
+import {
+  allPublications,
+  loadCabinet,
+  loadIndex,
+  ministryName,
+  TYPE_LABELS,
+  type Publication,
+} from "../lib/published";
+
+const index = loadIndex();
+const slugs = new Set([
+  ...loadCabinet(index).map((m) => m.slug),
+  ...Object.keys(index.ministries),
+]);
+const publications: Publication[] = [...slugs]
+  .flatMap((slug) => allPublications(index, slug))
+  .filter((p) => p.report)
+  .sort((a, b) => b.date.localeCompare(a.date));
+
+const searchIndex = publications.map((p) => ({
+  slug: p.slug,
+  ministry: ministryName(index, p.slug),
+  date: p.date,
+  type: p.type,
+  typeLabel: TYPE_LABELS[p.type] ?? p.type,
+  title: p.report!.title,
+  summary: p.report!.summary,
+  joint: p.type === "joint_report",
+  corrected: p.correctedBy.length > 0,
+}));
+
+const ministries = [...new Set(searchIndex.map((p) => p.slug))].map((slug) => ({
+  slug,
+  name: ministryName(index, slug),
+}));
+const types = [...new Set(searchIndex.map((p) => p.type))];
+---
+
+<Base title="Анализи" description="Всички отчети на AI кабинета — филтри и търсене.">
+  <h1>Анализи</h1>
+  <p class="lead">
+    Всички публикувани отчети на едно място. Всеки е минал второ четене и
+    цитира източниците си.
+  </p>
+
+  <div class="filters card">
+    <input
+      type="search"
+      id="q"
+      placeholder="Търси в заглавия и резюмета…"
+      aria-label="Търсене"
+    />
+    <select id="f-ministry" aria-label="Министерство">
+      <option value="">Всички министерства</option>
+      {ministries.map((m) => <option value={m.slug}>{m.name}</option>)}
+    </select>
+    <select id="f-type" aria-label="Тип">
+      <option value="">Всички типове</option>
+      {types.map((t) => <option value={t}>{TYPE_LABELS[t] ?? t}</option>)}
+    </select>
+    <input type="date" id="f-date" aria-label="От дата" />
+  </div>
+
+  <p class="muted" id="count" aria-live="polite"></p>
+
+  <div class="results" id="results">
+    {searchIndex.map((p, i) => (
+      <a
+        class="card result"
+        href={`/${p.slug}/${p.date}/`}
+        data-i={i}
+        class:list={[p.joint && "joint"]}
+      >
+        <span class="muted meta">
+          {p.ministry} · {p.typeLabel} · {p.date}
+          {p.corrected && <span class="tag mini">поправен</span>}
+          {p.joint && <span class="tag mini joint-tag">съвместен</span>}
+        </span>
+        <span class="title">{p.title}</span>
+        <span class="muted summary">{p.summary}</span>
+      </a>
+    ))}
+  </div>
+
+  <script type="application/json" id="search-data" set:html={JSON.stringify(searchIndex)} />
+</Base>
+
+<script>
+  interface Item {
+    slug: string;
+    ministry: string;
+    date: string;
+    type: string;
+    title: string;
+    summary: string;
+  }
+  const data = JSON.parse(
+    document.getElementById("search-data")!.textContent ?? "[]",
+  ) as Item[];
+  const cards = [...document.querySelectorAll<HTMLElement>(".result")];
+  const q = document.getElementById("q") as HTMLInputElement;
+  const fMinistry = document.getElementById("f-ministry") as HTMLSelectElement;
+  const fType = document.getElementById("f-type") as HTMLSelectElement;
+  const fDate = document.getElementById("f-date") as HTMLInputElement;
+  const count = document.getElementById("count")!;
+
+  const norm = (s: string) => s.toLowerCase().normalize("NFC");
+
+  function apply() {
+    const needle = norm(q.value.trim());
+    const words = needle.split(/\s+/).filter(Boolean);
+    let visible = 0;
+    for (const card of cards) {
+      const item = data[Number(card.dataset.i)]!;
+      const haystack = norm(`${item.title} ${item.summary} ${item.ministry}`);
+      const ok =
+        words.every((w) => haystack.includes(w)) &&
+        (!fMinistry.value || item.slug === fMinistry.value) &&
+        (!fType.value || item.type === fType.value) &&
+        (!fDate.value || item.date >= fDate.value);
+      card.style.display = ok ? "" : "none";
+      if (ok) visible += 1;
+    }
+    count.textContent = `${visible} от ${cards.length} публикации`;
+  }
+  for (const el of [q, fMinistry, fType, fDate]) {
+    el.addEventListener("input", apply);
+  }
+  apply();
+</script>
+
+<style>
+  .filters {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 14px;
+  }
+  @media (max-width: 760px) {
+    .filters {
+      grid-template-columns: 1fr;
+    }
+  }
+  .filters input,
+  .filters select {
+    font: inherit;
+    font-size: 14.5px;
+    color: var(--ink);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+  }
+  .results {
+    display: grid;
+    gap: 12px;
+  }
+  .result {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-decoration: none;
+    color: inherit;
+    padding: 16px 20px;
+  }
+  .result:hover {
+    border-color: var(--accent);
+  }
+  .result.joint {
+    border-left: 3px solid var(--accent);
+  }
+  .meta {
+    font-size: 12.5px;
+  }
+  .title {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 17px;
+  }
+  .summary {
+    font-size: 14px;
+  }
+  .tag.mini {
+    font-size: 11px;
+    padding: 1px 8px;
+    margin-left: 6px;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+  }
+  .tag.mini.joint-tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+</style>
