@@ -1,6 +1,6 @@
 {
   "ministry": "finance",
-  "date": "2026-07-19",
+  "date": "2026-07-20",
   "items": [
     {
       "title": "Тестова новина",
@@ -8,7 +8,7 @@
       "source": {
         "url": "https://example.bg/fake-source",
         "title": "Тестов източник (fake brain)",
-        "retrieved": "2026-07-19"
+        "retrieved": "2026-07-20"
       }
     }
   ]

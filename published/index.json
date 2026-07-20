@@ -2,12 +2,14 @@
   "ministries": {
     "finance": [
       {
-        "date": "2026-07-19",
-        "artifacts": [
-          "aggregates.json",
-          "news.json",
-          "report.md"
-        ]
+        "date": "2026-07-20",
+        "types": {
+          "news_digest": [
+            "aggregates.json",
+            "news.json",
+            "report.md"
+          ]
+        }
       }
     ]
   },

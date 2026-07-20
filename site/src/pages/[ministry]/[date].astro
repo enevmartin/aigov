@@ -13,14 +13,14 @@ export function getStaticPaths() {
 const { ministry, date } = Astro.params;
 const index = loadIndex();
 const name = ministryName(index, ministry!);
-const day = loadDay(ministry!, date!);
+const publications = loadDay(index, ministry!, date!);
 ---
 
 <Base title={`${name} — ${date}`}>
   <nav class="crumbs muted">
     <a href="/">Кабинет</a> / <a href={`/${ministry}/`}>{name}</a> / {date}
   </nav>
-  <DayView day={day} />
+  {publications.map((pub) => <DayView day={pub} names={index.names} />)}
 </Base>
 
 <style>

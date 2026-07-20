@@ -87,7 +87,7 @@ class TestApprovePath:
         publish = publish_all(config)
         assert publish["published"] == ["finance-2026-07-20-digest"]
         report = (
-            config.path("published") / "finance" / "2026-07-20" / "report.md"
+            config.path("published") / "finance" / "2026-07-20" / "news_digest" / "report.md"
         ).read_text(encoding="utf-8")
         assert "reviewed: true" in report
         assert "reviewer: test-reviewer" in report

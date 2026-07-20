@@ -139,24 +139,23 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
         try:
             validated = validate_output(task_dir / "output", spec)
             report = validated.get("report.md")
-            if isinstance(report, CorrectionReport):
-                original_dir = published_root / report.corrects.ministry / (
-                    report.corrects.date.isoformat()
+            if isinstance(report, CorrectionReport) and not _original_dir(
+                published_root, report
+            ).is_dir():
+                raise OutputRejected(
+                    f"correction references unknown publication "
+                    f"{report.corrects.ministry}/{report.corrects.date}"
                 )
-                if not original_dir.is_dir():
-                    raise OutputRejected(
-                        f"correction references unknown publication "
-                        f"{report.corrects.ministry}/{report.corrects.date}"
-                    )
         except OutputRejected as exc:
             queue.fail(task_id, str(exc), source_state=QueueState.DONE)
             results["rejected"].append(task_id)
             continue
 
-        # every artifact model carries the publication date
+        # every artifact model carries the publication date; the type subdir
+        # keeps same-day publications of one ministry from clobbering each other
         dates = {m.date for m in validated.values() if hasattr(m, "date")}
         day = sorted(dates)[-1].isoformat()
-        target = published_root / spec.ministry / day
+        target = published_root / spec.ministry / day / spec.type.value
         target.mkdir(parents=True, exist_ok=True)
         for name in validated:
             shutil.copy2(task_dir / "output" / name, target / name)
@@ -183,15 +182,27 @@ def publish_all(config: AppConfig) -> dict[str, list[str]]:
 CORRECTED_BY_FILE = "corrected_by.json"
 
 
+def _original_dir(published_root: Path, correction: CorrectionReport) -> Path:
+    """The directory of the publication a correction references.
+
+    With a known type the sidecar sits next to that publication; without
+    one it attaches at the date level (badge covers the whole day).
+    """
+    base = published_root / correction.corrects.ministry / (
+        correction.corrects.date.isoformat()
+    )
+    if correction.corrects.type:
+        return base / correction.corrects.type
+    return base
+
+
 def _link_correction(published_root: Path, correction: CorrectionReport, day: str) -> None:
     """Attach a ``corrected_by.json`` sidecar to the ORIGINAL publication.
 
     The original artifacts stay byte-identical (history is inviolable);
     only this new metadata file appears next to them.
     """
-    original_dir = published_root / correction.corrects.ministry / (
-        correction.corrects.date.isoformat()
-    )
+    original_dir = _original_dir(published_root, correction)
     sidecar = original_dir / CORRECTED_BY_FILE
     payload: dict[str, list[dict[str, str]]] = {"corrections": []}
     if sidecar.is_file():
@@ -262,9 +273,15 @@ def rebuild_index(
         for ministry_dir in sorted(p for p in published_root.iterdir() if p.is_dir()):
             entries: list[dict[str, object]] = []
             for date_dir in sorted(p for p in ministry_dir.iterdir() if p.is_dir()):
-                artifacts = sorted(p.name for p in date_dir.iterdir() if p.is_file())
-                if artifacts:
-                    entries.append({"date": date_dir.name, "artifacts": artifacts})
+                types: dict[str, list[str]] = {}
+                for type_dir in sorted(p for p in date_dir.iterdir() if p.is_dir()):
+                    artifacts = sorted(
+                        p.name for p in type_dir.iterdir() if p.is_file()
+                    )
+                    if artifacts:
+                        types[type_dir.name] = artifacts
+                if types:
+                    entries.append({"date": date_dir.name, "types": types})
             if entries:
                 index[ministry_dir.name] = entries
 

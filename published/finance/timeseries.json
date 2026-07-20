@@ -1,20 +1,21 @@
 {
   "ministry": "finance",
-  "date": "2026-07-19",
+  "generated": "2026-07-20T04:56:14.457251+00:00",
   "series": [
     {
       "name": "Брой входни файлове",
       "unit": "бр.",
-      "labels": [
-        "2026-07-19"
-      ],
-      "values": [
-        1.0
+      "points": [
+        {
+          "label": "2026-07-20",
+          "value": 1.0,
+          "published": "2026-07-20"
+        }
       ],
       "source": {
         "url": "https://example.bg/fake-source",
         "title": "Тестов източник (fake brain)",
-        "retrieved": "2026-07-19"
+        "retrieved": "2026-07-20"
       }
     }
   ]

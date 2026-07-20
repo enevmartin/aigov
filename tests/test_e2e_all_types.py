@@ -117,16 +117,18 @@ def test_every_task_type_reaches_published(repo: Path) -> None:
     assert set(index["ministries"]) == {"finance", "health", "government"}
     assert len(index["cabinet"]) == 3
 
-    finance_files = {
-        p.name for date in (published / "finance").iterdir() if date.is_dir()
-        for p in date.iterdir()
+    finance_types = {
+        type_dir.name
+        for date in (published / "finance").iterdir() if date.is_dir()
+        for type_dir in date.iterdir() if type_dir.is_dir()
     }
-    # news_digest + analysis + weekly (report/aggregates/news) + crisis + signals
-    assert {"report.md", "aggregates.json", "news.json", "signals.json"} <= finance_files
+    # each publication type lives in its own subdir — no same-day clobbering
+    assert {
+        "news_digest", "analysis", "crisis_brief", "signal_triage", "weekly_report"
+    } <= finance_types
 
     government_report = next(
-        p for date in sorted((published / "government").iterdir()) if date.is_dir()
-        for p in date.iterdir() if p.name == "report.md"
+        p for p in sorted((published / "government").rglob("report.md"))
     ).read_text(encoding="utf-8")
     assert "contributors:" in government_report
 

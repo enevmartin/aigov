@@ -154,7 +154,7 @@ class TestPublishPerType:
         run_type(config, task_type)
         results = publish_all(config)
         assert len(results["published"]) == 1, results
-        day_dir = config.path("published") / "finance" / "2026-07-20"
+        day_dir = config.path("published") / "finance" / "2026-07-20" / task_type
         assert {p.name for p in day_dir.iterdir()} == expected_files
 
     def test_joint_report_publishes_under_government(self, config: AppConfig) -> None:
@@ -162,7 +162,7 @@ class TestPublishPerType:
         results = publish_all(config)
         assert len(results["published"]) == 1
         report = (
-            config.path("published") / "government" / "2026-07-20" / "report.md"
+            config.path("published") / "government" / "2026-07-20" / "joint_report" / "report.md"
         ).read_text(encoding="utf-8")
         assert "contributors:" in report
 
@@ -180,7 +180,7 @@ class TestPublishPerType:
         """Only signals.json (+ optional report) can go public — never input."""
         run_type(config, "signal_triage")
         publish_all(config)
-        day_dir = config.path("published") / "finance" / "2026-07-20"
+        day_dir = config.path("published") / "finance" / "2026-07-20" / "signal_triage"
         published = {p.name for p in day_dir.iterdir()}
         assert "signals.json" in published
         assert not any("staging" in name or "parquet" in name for name in published)

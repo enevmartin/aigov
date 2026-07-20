@@ -1,0 +1,27 @@
+{
+  "sessions": [
+    {
+      "timestamp": "2026-07-20T04:56:13.296114+00:00",
+      "tasks": [
+        {
+          "id": "finance-2026-07-20-045612-news-digest",
+          "ministry": "finance",
+          "type": "news_digest",
+          "brain": "claude_code",
+          "duration_s": 0.046,
+          "tokens": null,
+          "outcome": "done"
+        },
+        {
+          "id": "finance-2026-07-20-045612-news-digest-review",
+          "ministry": "finance",
+          "type": "review",
+          "brain": "claude_code",
+          "duration_s": 0.032,
+          "tokens": null,
+          "outcome": "approved"
+        }
+      ]
+    }
+  ]
+}

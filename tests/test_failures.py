@@ -146,4 +146,5 @@ class TestIsolation:
         results = publish_all(config)
         assert results["published"] == ["finance-2026-07-20-b"]
         assert results["rejected"] == ["finance-2026-07-20-a"]
-        assert (config.path("published") / "finance" / "2026-07-20" / "report.md").is_file()
+        report = config.path("published") / "finance" / "2026-07-20" / "news_digest" / "report.md"
+        assert report.is_file()

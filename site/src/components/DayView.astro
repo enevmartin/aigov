@@ -1,9 +1,9 @@
 ---
-/** One published day of one ministry: report, charts, news, signals. */
-import type { PublishedDay } from "../lib/published";
+/** One publication of one ministry: report, charts, news, signals. */
+import { TYPE_LABELS, type Publication } from "../lib/published";
 
 interface Props {
-  day: PublishedDay;
+  day: Publication;
   names?: Record<string, string>;
 }
 const { day, names = {} } = Astro.props;
@@ -18,6 +18,7 @@ const confidenceLabel: Record<string, string> = {
 <article>
   <header class="report-header">
     <span class="tag">{day.date}</span>
+    <span class="tag type-tag">{TYPE_LABELS[day.type] ?? day.type}</span>
     {day.report?.confidence && (
       <span class={`tag crisis crisis-${day.report.confidence}`}>
         Извънреден брифинг · {confidenceLabel[day.report.confidence]}
@@ -185,6 +186,11 @@ const confidenceLabel: Record<string, string> = {
   .tag.corrected {
     background: #fdf3d7;
     color: #8a6100;
+  }
+  .tag.type-tag {
+    margin-left: 8px;
+    background: #eef1f0;
+    color: var(--muted);
   }
   .corrected-banner {
     display: flex;

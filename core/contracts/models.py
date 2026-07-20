@@ -27,6 +27,7 @@ class TaskType(StrEnum):
     SIGNAL_TRIAGE = "signal_triage"  # citizen signals -> aggregate stats (phase 3)
     REVIEW = "review"                # second reading of another task's output
     CORRECTION = "correction"        # first-class correction of a past publication
+    PLAN = "plan"                    # quarterly priorities of a minister
 
 
 class TaskSpec(BaseModel):
@@ -294,6 +295,7 @@ REQUIRED_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.SIGNAL_TRIAGE: ("signals.json",),
     TaskType.REVIEW: ("review.json",),
     TaskType.CORRECTION: ("report.md",),
+    TaskType.PLAN: ("report.md",),
 }
 
 OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
@@ -305,6 +307,7 @@ OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.SIGNAL_TRIAGE: ("report.md",),
     TaskType.REVIEW: (),
     TaskType.CORRECTION: ("aggregates.json",),  # corrected numbers, when numeric
+    TaskType.PLAN: (),
 }
 
 # Which model validates report.md front-matter for each type.
@@ -317,4 +320,5 @@ REPORT_MODEL: dict[TaskType, type[Report]] = {
     TaskType.SIGNAL_TRIAGE: Report,
     TaskType.REVIEW: Report,  # reviews are never published; entry for completeness
     TaskType.CORRECTION: CorrectionReport,
+    TaskType.PLAN: Report,
 }

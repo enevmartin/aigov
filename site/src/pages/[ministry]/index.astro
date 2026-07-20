@@ -4,8 +4,8 @@ import DayView from "../../components/DayView.astro";
 import {
   datesFor,
   loadCabinet,
+  loadDay,
   loadIndex,
-  loadLatest,
   ministryName,
 } from "../../lib/published";
 
@@ -23,8 +23,8 @@ const { ministry } = Astro.params;
 const index = loadIndex();
 const name = ministryName(index, ministry!);
 const member = index.cabinet.find((m) => m.slug === ministry);
-const day = loadLatest(index, ministry!);
 const dates = datesFor(index, ministry!);
+const latestDay = dates[0] ? loadDay(index, ministry!, dates[0]) : [];
 ---
 
 <Base title={name}>
@@ -32,8 +32,8 @@ const dates = datesFor(index, ministry!);
     <a href="/">Кабинет</a> / {name}
   </nav>
 
-  {day ? (
-    <DayView day={day} names={index.names} />
+  {latestDay.length > 0 ? (
+    latestDay.map((pub) => <DayView day={pub} names={index.names} />)
   ) : (
     <section class="card empty-state">
       <h1>{name}</h1>

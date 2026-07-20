@@ -42,7 +42,7 @@ class TestPublishAll:
         results = publish_all(config)
 
         assert results["published"] == ["finance-2026-07-19-digest"]
-        target = config.path("published") / "finance" / "2026-07-19"
+        target = config.path("published") / "finance" / "2026-07-19" / "news_digest"
         assert (target / "report.md").is_file()
         assert (target / "aggregates.json").is_file()
         assert (target / "news.json").is_file()
@@ -56,7 +56,7 @@ class TestPublishAll:
             (config.path("published") / "index.json").read_text(encoding="utf-8")
         )
         assert index["ministries"]["finance"][0]["date"] == "2026-07-19"
-        assert "report.md" in index["ministries"]["finance"][0]["artifacts"]
+        assert "report.md" in index["ministries"]["finance"][0]["types"]["news_digest"]
         # no ministries/ declarations in this fixture -> name falls back to slug
         assert index["names"]["finance"] == "finance"
 
@@ -107,7 +107,7 @@ class TestPublishAll:
         run_task_through_fake_brain(config, "finance-2026-07-19-an", "analysis")
         results = publish_all(config)
         assert results["published"] == ["finance-2026-07-19-an"]
-        target = config.path("published") / "finance" / "2026-07-19"
+        target = config.path("published") / "finance" / "2026-07-19" / "analysis"
         assert not (target / "news.json").exists()
 
 

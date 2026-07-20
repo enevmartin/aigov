@@ -55,7 +55,7 @@ def publish_original(repo: Path, task_id: str = "finance-2026-07-19-an") -> AppC
 class TestCorrectionCycle:
     def test_full_cycle_with_sidecar_and_immutable_original(self, repo: Path) -> None:
         config = publish_original(repo)
-        original_dir = config.path("published") / "finance" / "2026-07-19"
+        original_dir = config.path("published") / "finance" / "2026-07-19" / "analysis"
         before = {
             p.name: p.read_bytes() for p in original_dir.iterdir() if p.is_file()
         }
@@ -85,7 +85,7 @@ class TestCorrectionCycle:
         )
         correction_day = [d for d in correction_days if d != "2026-07-19"][0]
         correction_report = (
-            config.path("published") / "finance" / correction_day / "report.md"
+            config.path("published") / "finance" / correction_day / "correction" / "report.md"
         ).read_text(encoding="utf-8")
         assert "corrects:" in correction_report
         assert "2026-07-19" in correction_report

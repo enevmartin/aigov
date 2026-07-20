@@ -139,9 +139,10 @@ def _published_input(
             continue
         dates = sorted((p for p in ministry_dir.iterdir() if p.is_dir()), key=lambda p: p.name)
         for date_dir in dates[-days:] if days else dates[-1:]:
-            for artifact in sorted(date_dir.iterdir()):
+            for artifact in sorted(date_dir.rglob("*")):
                 if artifact.is_file():
-                    key = f"published/{slug}/{date_dir.name}/{artifact.name}"
+                    rel = artifact.relative_to(date_dir).as_posix()
+                    key = f"published/{slug}/{date_dir.name}/{rel}"
                     files[key] = artifact.read_bytes()
     return files
 
@@ -179,6 +180,10 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
         if not input_files:
             print(f"[{ministry}] weekly_report needs published days — nothing found")
             return 1
+    elif t is TaskType.PLAN:
+        # quarterly priorities: the ministry's own recent work is the input;
+        # a first-ever plan legitimately starts from a blank slate
+        input_files = _published_input(config, [ministry], days=30)
     else:
         input_files, consumed = _staged_input(config, ministry)
         if not input_files:
@@ -186,7 +191,7 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
             return 1
 
     # institutional memory: analyses compare against the ministry's own trend
-    if t in (TaskType.ANALYSIS, TaskType.WEEKLY_REPORT, TaskType.CRISIS_BRIEF):
+    if t in (TaskType.ANALYSIS, TaskType.WEEKLY_REPORT, TaskType.CRISIS_BRIEF, TaskType.PLAN):
         history = history_payload(config.root / "data" / "archive.duckdb", ministry)
         if history is not None:
             input_files["history.json"] = history.encode("utf-8")
@@ -258,17 +263,33 @@ def cmd_session(config: AppConfig, dry_run: bool) -> int:
     return 0 if not results["failed"] else 1
 
 
-def cmd_correct(config: AppConfig, ministry: str, date: str, note: str | None) -> int:
+def cmd_correct(
+    config: AppConfig, ministry: str, date: str, note: str | None, pub_type: str | None
+) -> int:
     """Enqueue a correction task for the publication at *ministry*/*date*.
 
     The original is never edited or deleted; the correction is its own
     publication (through the same session + review pipeline) and the
-    original gains a ``corrected_by.json`` sidecar at publish time.
+    original gains a ``corrected_by.json`` sidecar at publish time. When a
+    day holds several publications, ``--type`` picks which one.
     """
-    original_dir = config.path("published") / ministry / date
-    if not original_dir.is_dir():
+    date_dir = config.path("published") / ministry / date
+    if not date_dir.is_dir():
         print(f"no publication at published/{ministry}/{date}")
         return 1
+    types = sorted(p.name for p in date_dir.iterdir() if p.is_dir())
+    if pub_type is None:
+        if len(types) != 1:
+            print(
+                f"published/{ministry}/{date} holds {len(types)} publications "
+                f"({', '.join(types) or 'none'}) — pass --type"
+            )
+            return 1
+        pub_type = types[0]
+    elif pub_type not in types:
+        print(f"no {pub_type} publication at published/{ministry}/{date}")
+        return 1
+    original_dir = date_dir / pub_type
 
     input_files: dict[str, bytes] = {
         f"original/{p.name}": p.read_bytes()
@@ -278,6 +299,7 @@ def cmd_correct(config: AppConfig, ministry: str, date: str, note: str | None) -
     request = {
         "ministry": ministry,
         "date": date,
+        "type": pub_type,
         "note": note or "не е посочена конкретна бележка — провери всички твърдения",
     }
     input_files["correction_request.json"] = json.dumps(
@@ -382,6 +404,9 @@ def main(argv: list[str] | None = None) -> int:
     p_correct.add_argument("ministry")
     p_correct.add_argument("date", help="publication date YYYY-MM-DD")
     p_correct.add_argument("--note", help="what is wrong (operator note for the minister)")
+    p_correct.add_argument(
+        "--type", dest="pub_type", help="which publication of that day (e.g. analysis)"
+    )
 
     args = parser.parse_args(argv)
     config = load_config(args.root.resolve())
@@ -397,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "export":
         return cmd_export(config, args.ministry, args.brain)
     if args.command == "correct":
-        return cmd_correct(config, args.ministry, args.date, args.note)
+        return cmd_correct(config, args.ministry, args.date, args.note, args.pub_type)
     return cmd_status(config)
 
 
