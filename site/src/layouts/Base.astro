@@ -1,9 +1,35 @@
 ---
+import "@fontsource/ibm-plex-sans/cyrillic-400.css";
+import "@fontsource/ibm-plex-sans/cyrillic-500.css";
+import "@fontsource/ibm-plex-sans/cyrillic-600.css";
+import "@fontsource/ibm-plex-sans/latin-400.css";
+import "@fontsource/ibm-plex-sans/latin-500.css";
+import "@fontsource/ibm-plex-sans/latin-600.css";
+import "@fontsource/ibm-plex-serif/cyrillic-500.css";
+import "@fontsource/ibm-plex-serif/cyrillic-600.css";
+import "@fontsource/ibm-plex-serif/latin-500.css";
+import "@fontsource/ibm-plex-serif/latin-600.css";
+
 interface Props {
   title: string;
   description?: string;
+  /** the home page adds the visible experiment banner */
+  banner?: boolean;
 }
-const { title, description = "AI електронно правителство на България — публични анализи и отчети." } = Astro.props;
+const {
+  title,
+  description = "Независим граждански AI експеримент: публични анализи и отчети за България.",
+  banner = false,
+} = Astro.props;
+const nav = [
+  { href: "/", label: "Кабинет" },
+  { href: "/analizi/", label: "Анализи" },
+  { href: "/planove/", label: "Планове" },
+  { href: "/danni/", label: "Данни" },
+  { href: "/system/", label: "Система" },
+  { href: "/za-proekta/", label: "За проекта" },
+];
+const current = Astro.url.pathname;
 ---
 
 <!doctype html>
@@ -12,33 +38,78 @@ const { title, description = "AI електронно правителство �
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={description} />
+    <meta property="og:title" content={`${title} — aigov.bg`} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="bg_BG" />
+    <link rel="alternate" type="application/rss+xml" title="aigov.bg — публикации" href="/rss.xml" />
+    <link rel="sitemap" href="/sitemap.xml" />
     <title>{title} — aigov.bg</title>
   </head>
   <body>
+    <a class="skip-link" href="#main">Към съдържанието</a>
     <header class="site-header">
-      <nav class="container nav">
+      <nav class="container nav" aria-label="Основна навигация">
         <a class="brand" href="/">
-          <span class="brand-mark">ai</span>gov.bg
+          <span class="brand-mark">ai</span>gov<span class="brand-dot">.bg</span>
         </a>
         <div class="nav-links">
-          <a href="/">Кабинет</a>
-          <a href="/arhiv/">Архив</a>
-          <a href="/system/">Система</a>
+          {nav.map((item) => (
+            <a
+              href={item.href}
+              aria-current={
+                current === item.href ||
+                (item.href !== "/" && current.startsWith(item.href))
+                  ? "page"
+                  : undefined
+              }
+            >
+              {item.label}
+            </a>
+          ))}
         </div>
       </nav>
     </header>
 
-    <main class="container">
+    {banner && (
+      <div class="experiment-banner" role="note">
+        <div class="container">
+          aigov.bg е независим граждански AI експеримент. НЕ е свързан с
+          правителството на Република България и не представлява официална
+          институция.
+        </div>
+      </div>
+    )}
+
+    <main class="container" id="main">
       <slot />
     </main>
 
     <footer class="site-footer">
-      <div class="container">
-        <p>
-          aigov.bg — експериментален AI прочит на публични данни. Отчетите са
-          генерирани от AI и цитират източниците си; не са официална
-          държавна информация.
-        </p>
+      <div class="container footer-grid">
+        <div>
+          <p class="footer-brand"><span class="brand-mark">ai</span>gov.bg</p>
+          <p>
+            Независим граждански AI експеримент. НЕ е свързан с правителството
+            на Република България и не представлява официална институция.
+            Министрите са очевидно AI фигури.
+          </p>
+        </div>
+        <div>
+          <p class="footer-title">Прозрачност</p>
+          <p>
+            Всеки отчет цитира източниците си и минава второ четене преди
+            публикация. <a href="/danni/">Данните</a> са свободно сваляеми;
+            статусът на системата е публичен на <a href="/system/">/system</a>.
+          </p>
+        </div>
+        <div>
+          <p class="footer-title">Абонамент</p>
+          <p>
+            <a href="/rss.xml">RSS емисия</a> ·
+            <a href="https://github.com/enevmartin/aigov" rel="noopener">Код (GitHub)</a>
+          </p>
+        </div>
       </div>
     </footer>
   </body>
@@ -46,100 +117,170 @@ const { title, description = "AI електронно правителство �
 
 <style is:global>
   :root {
-    --bg: #fafaf8;
+    --bg: #f6f7f5;
     --surface: #ffffff;
-    --ink: #1c2733;
-    --muted: #5b6b7b;
-    --line: #e3e7ec;
-    --accent: #0f5c46;
-    --accent-soft: #e7f2ee;
+    --surface-2: #eef1ee;
+    --ink: #1a2129;
+    --muted: #5a6672;
+    --line: #e0e5e1;
+    --accent: #0d5c46;
+    --accent-soft: #e3efea;
+    --accent-contrast: #ffffff;
+    --warn-bg: #fdf3d7;
+    --warn-ink: #7c5a00;
+    --bad: #a03030;
+    --bad-bg: #f9e9e9;
+    --radius: 10px;
+    --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+    --font-serif: "IBM Plex Serif", Georgia, serif;
   }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11161a;
+      --surface: #191f25;
+      --surface-2: #212930;
+      --ink: #e6eae4;
+      --muted: #96a1a9;
+      --line: #2b343c;
+      --accent: #46a583;
+      --accent-soft: #1c3229;
+      --accent-contrast: #0d1512;
+      --warn-bg: #33290e;
+      --warn-ink: #e4c56b;
+      --bad: #d98282;
+      --bad-bg: #3a2222;
+    }
+  }
+
   * {
     box-sizing: border-box;
+  }
+  html {
+    quotes: "„" "“";
   }
   body {
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family:
-      system-ui,
-      -apple-system,
-      "Segoe UI",
-      Roboto,
-      sans-serif;
-    line-height: 1.6;
+    font-family: var(--font-sans);
+    font-feature-settings: "locl";
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
   }
   .container {
-    max-width: 1080px;
+    max-width: 1120px;
     margin: 0 auto;
     padding: 0 20px;
   }
   a {
     color: var(--accent);
   }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  h1 {
+    font-size: clamp(27px, 4vw, 40px);
+    margin: 0 0 10px;
+  }
+  code {
+    font-size: 0.92em;
+    background: var(--surface-2);
+    padding: 1px 6px;
+    border-radius: 5px;
+  }
+
+  .skip-link {
+    position: absolute;
+    left: -999px;
+  }
+  .skip-link:focus {
+    left: 12px;
+    top: 12px;
+    background: var(--surface);
+    padding: 8px 14px;
+    z-index: 10;
+  }
 
   .site-header {
     background: var(--surface);
     border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    z-index: 5;
   }
   .nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding-top: 14px;
-    padding-bottom: 14px;
+    gap: 16px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    flex-wrap: wrap;
   }
   .brand {
-    font-size: 22px;
-    font-weight: 700;
+    font-family: var(--font-serif);
+    font-size: 23px;
+    font-weight: 600;
     text-decoration: none;
     color: var(--ink);
-    letter-spacing: 0.01em;
   }
   .brand-mark {
     color: var(--accent);
   }
+  .brand-dot {
+    color: var(--muted);
+    font-size: 0.8em;
+  }
   .nav-links {
     display: flex;
-    gap: 22px;
+    gap: 4px;
+    flex-wrap: wrap;
   }
   .nav-links a {
     text-decoration: none;
     color: var(--muted);
     font-weight: 500;
+    font-size: 14.5px;
+    padding: 6px 11px;
+    border-radius: 999px;
   }
   .nav-links a:hover {
     color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .nav-links a[aria-current="page"] {
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .experiment-banner {
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    font-size: 13.5px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
   }
 
   main.container {
-    padding-top: 36px;
-    padding-bottom: 64px;
-  }
-
-  h1 {
-    font-size: clamp(26px, 4vw, 38px);
-    line-height: 1.2;
-    margin: 0 0 8px;
+    padding-top: 34px;
+    padding-bottom: 72px;
   }
   .lead {
     color: var(--muted);
-    max-width: 68ch;
-    margin: 0 0 32px;
-  }
-
-  .site-footer {
-    border-top: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--muted);
-    font-size: 14px;
-    padding: 18px 0;
+    max-width: 70ch;
+    font-size: 16.5px;
+    margin: 0 0 30px;
   }
 
   .card {
     background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: var(--radius);
     padding: 22px;
   }
   .muted {
@@ -153,5 +294,40 @@ const { title, description = "AI електронно правителство �
     padding: 2px 12px;
     font-size: 13px;
     font-weight: 600;
+  }
+
+  .site-footer {
+    border-top: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    font-size: 13.5px;
+    padding: 30px 0 36px;
+  }
+  .footer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 28px;
+  }
+  .footer-brand {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .footer-title {
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .site-footer p {
+    margin: 0 0 8px;
+  }
+
+  table {
+    border-collapse: collapse;
+  }
+  ::selection {
+    background: var(--accent);
+    color: var(--accent-contrast);
   }
 </style>
