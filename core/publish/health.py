@@ -11,6 +11,7 @@ A source becomes ``degraded`` after 3 consecutive failures (чл. фаза-2
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -113,3 +114,33 @@ def record_session(config: AppConfig, results: dict[str, list[str]]) -> SystemHe
     }
     _save(config, health)
     return health
+
+
+SESSIONS_FILE = "sessions.json"
+MAX_SESSIONS = 50
+
+
+def record_session_details(
+    config: AppConfig, tasks: list[dict[str, object]]
+) -> Path | None:
+    """Append one session's per-task records to published/system/sessions.json.
+
+    Each record carries ministry, type, brain, duration and (when the brain
+    reports it) token usage — the data behind the "which minister on which
+    brain" decision. Empty sessions are not recorded.
+    """
+    if not tasks:
+        return None
+    path = config.path("published") / HEALTH_DIR / SESSIONS_FILE
+    payload: dict[str, list[dict[str, object]]] = {"sessions": []}
+    if path.is_file():
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["sessions"].append(
+        {"timestamp": datetime.now(tz=UTC).isoformat(), "tasks": tasks}
+    )
+    payload["sessions"] = payload["sessions"][-MAX_SESSIONS:]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return path

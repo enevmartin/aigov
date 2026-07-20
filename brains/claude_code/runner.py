@@ -16,6 +16,7 @@ The subprocess call is injectable so tests never launch a real CLI.
 
 from __future__ import annotations
 
+import json
 import subprocess
 from collections.abc import Callable
 from pathlib import Path
@@ -62,12 +63,41 @@ CONTRACT_INSTRUCTIONS = """\
 ExecFn = Callable[[str, Path, AppConfig], None]
 
 
+def parse_cli_usage(stdout: str) -> dict[str, object] | None:
+    """Extract token usage from the claude CLI's --output-format json stdout.
+
+    Tolerant by design: any missing/foreign shape returns None — usage is
+    observability, never a failure reason.
+    """
+    try:
+        payload = json.loads(stdout)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    usage = payload.get("usage")
+    if not isinstance(usage, dict):
+        return None
+    report: dict[str, object] = {
+        key: usage[key]
+        for key in ("input_tokens", "output_tokens", "cache_read_input_tokens")
+        if key in usage
+    }
+    if "total_cost_usd" in payload:
+        report["total_cost_usd"] = payload["total_cost_usd"]
+    return report or None
+
+
 def _default_exec(prompt: str, task_dir: Path, config: AppConfig) -> None:
-    """Invoke the real ``claude`` CLI in *task_dir* (blocking)."""
+    """Invoke the real ``claude`` CLI in *task_dir* (blocking).
+
+    Reported token usage lands in ``{task_dir}/usage.json`` for the
+    session ledger (published/system/sessions.json).
+    """
     settings = config.brains.get("claude_code", {})
     cmd = str(settings.get("cmd", "claude"))
     output_format = str(settings.get("output_format", "json"))
-    subprocess.run(  # noqa: S603 — fixed argv, no shell
+    completed = subprocess.run(  # noqa: S603 — fixed argv, no shell
         [cmd, "-p", prompt, "--output-format", output_format],
         cwd=task_dir,
         check=True,
@@ -75,6 +105,11 @@ def _default_exec(prompt: str, task_dir: Path, config: AppConfig) -> None:
         text=True,
         encoding="utf-8",
     )
+    usage = parse_cli_usage(completed.stdout)
+    if usage is not None:
+        (task_dir / "usage.json").write_text(
+            json.dumps(usage, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
 
 def build_prompt(spec: TaskSpec, task_dir: Path, ministry_dir: Path) -> str:

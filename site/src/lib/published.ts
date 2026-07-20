@@ -224,6 +224,30 @@ export function loadHealth(): SystemHealth | null {
   return readJson<SystemHealth>(path.join(PUBLISHED_ROOT, "system", "health.json"));
 }
 
+export interface SessionTaskRecord {
+  id: string;
+  ministry?: string | null;
+  type?: string | null;
+  brain?: string | null;
+  duration_s: number;
+  tokens?: Record<string, number> | null;
+  outcome: string;
+}
+
+export interface SessionRecord {
+  timestamp: string;
+  tasks: SessionTaskRecord[];
+}
+
+/** published/system/sessions.json — the cabinet's работен дневник. */
+export function loadSessions(): SessionRecord[] {
+  return (
+    readJson<{ sessions: SessionRecord[] }>(
+      path.join(PUBLISHED_ROOT, "system", "sessions.json"),
+    )?.sessions ?? []
+  );
+}
+
 /** Initials for the avatar placeholder, e.g. "Министерство на финансите" -> "МФ". */
 export function initials(name: string): string {
   const stop = new Set(["на", "и", "по", "за"]);

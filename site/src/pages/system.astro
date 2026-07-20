@@ -1,16 +1,60 @@
 ---
 import Base from "../layouts/Base.astro";
-import { loadHealth, loadIndex, ministryName } from "../lib/published";
+import { loadHealth, loadIndex, loadSessions, ministryName } from "../lib/published";
 
 const health = loadHealth();
 const index = loadIndex();
+const sessions = loadSessions();
 const degraded = health?.sources.filter((s) => s.status === "degraded") ?? [];
 const okCount = (health?.sources.length ?? 0) - degraded.length;
 const events = [...(health?.events ?? [])].reverse().slice(0, 30);
+const recentSessions = [...sessions].reverse().slice(0, 10);
+
+// breakdown over ALL recorded sessions: ministry × type × brain
+interface Bucket {
+  count: number;
+  failed: number;
+  totalDuration: number;
+  tokens: number;
+}
+const breakdown = new Map<string, Bucket>();
+for (const session of sessions) {
+  for (const task of session.tasks) {
+    const key = `${task.ministry ?? "?"}|${task.type ?? "?"}|${task.brain ?? "?"}`;
+    const bucket = breakdown.get(key) ?? { count: 0, failed: 0, totalDuration: 0, tokens: 0 };
+    bucket.count += 1;
+    if (task.outcome === "failed") bucket.failed += 1;
+    bucket.totalDuration += task.duration_s;
+    if (task.tokens) {
+      bucket.tokens += Object.entries(task.tokens)
+        .filter(([k]) => k.endsWith("_tokens"))
+        .reduce((sum, [, v]) => sum + (typeof v === "number" ? v : 0), 0);
+    }
+    breakdown.set(key, bucket);
+  }
+}
+const breakdownRows = [...breakdown.entries()]
+  .map(([key, b]) => {
+    const [ministry, type, brain] = key.split("|");
+    return { ministry, type, brain, ...b, avg: b.totalDuration / b.count };
+  })
+  .sort((a, b) => b.count - a.count);
 
 function fmt(ts?: string | null): string {
   if (!ts) return "—";
   return new Date(ts).toLocaleString("bg-BG", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function sessionTokens(tasks: { tokens?: Record<string, number> | null }[]): string {
+  const total = tasks.reduce(
+    (sum, t) =>
+      sum +
+      Object.entries(t.tokens ?? {})
+        .filter(([k]) => k.endsWith("_tokens"))
+        .reduce((s, [, v]) => s + (typeof v === "number" ? v : 0), 0),
+    0,
+  );
+  return total > 0 ? total.toLocaleString("bg-BG") : "—";
 }
 ---
 
@@ -79,6 +123,74 @@ function fmt(ts?: string | null): string {
                     </td>
                     <td>{s.consecutive_failures ?? 0}</td>
                     <td>{fmt(s.last_ok)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section class="card">
+        <h2>Последни сесии на кабинета</h2>
+        {recentSessions.length === 0 && <p class="muted">Още няма записани сесии.</p>}
+        {recentSessions.length > 0 && (
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Кога</th>
+                  <th>Задачи</th>
+                  <th>Провалени</th>
+                  <th>Токени</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentSessions.map((s) => (
+                  <tr>
+                    <td>{fmt(s.timestamp)}</td>
+                    <td>{s.tasks.length}</td>
+                    <td>{s.tasks.filter((t) => t.outcome === "failed").length}</td>
+                    <td>{sessionTokens(s.tasks)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section class="card">
+        <h2>Разбивка: министерство × тип × мозък</h2>
+        <p class="muted">
+          Инструментът за решението „кой министър на кой мозък да работи" —
+          агрегирано от всички записани сесии.
+        </p>
+        {breakdownRows.length === 0 && <p class="muted">Още няма данни.</p>}
+        {breakdownRows.length > 0 && (
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Министерство</th>
+                  <th>Тип</th>
+                  <th>Мозък</th>
+                  <th>Задачи</th>
+                  <th>Провалени</th>
+                  <th>Ср. време</th>
+                  <th>Токени</th>
+                </tr>
+              </thead>
+              <tbody>
+                {breakdownRows.map((row) => (
+                  <tr>
+                    <td>{ministryName(index, row.ministry)}</td>
+                    <td>{row.type}</td>
+                    <td><code>{row.brain}</code></td>
+                    <td>{row.count}</td>
+                    <td>{row.failed}</td>
+                    <td>{row.avg.toFixed(1)}s</td>
+                    <td>{row.tokens > 0 ? row.tokens.toLocaleString("bg-BG") : "—"}</td>
                   </tr>
                 ))}
               </tbody>
