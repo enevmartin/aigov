@@ -1,17 +1,21 @@
 ---
 import Base from "../../layouts/Base.astro";
 import DayView from "../../components/DayView.astro";
+import TimeseriesCharts from "../../components/TimeseriesCharts.astro";
 import {
+  allPublications,
   datesFor,
+  initials,
   loadCabinet,
   loadDay,
   loadIndex,
+  loadTimeseries,
   ministryName,
+  TYPE_LABELS,
 } from "../../lib/published";
 
 export function getStaticPaths() {
   const index = loadIndex();
-  // every declared ministry gets a page, published or not
   const slugs = new Set([
     ...loadCabinet(index).map((m) => m.slug),
     ...Object.keys(index.ministries),
@@ -25,6 +29,44 @@ const name = ministryName(index, ministry!);
 const member = index.cabinet.find((m) => m.slug === ministry);
 const dates = datesFor(index, ministry!);
 const latestDay = dates[0] ? loadDay(index, ministry!, dates[0]) : [];
+const timeseries = loadTimeseries(ministry!);
+
+// hero KPIs: latest value + delta per series (max 4)
+const kpis = (timeseries?.series ?? []).slice(0, 4).map((s) => {
+  const last = s.points[s.points.length - 1] ?? null;
+  const prev = s.points.length > 1 ? s.points[s.points.length - 2]! : null;
+  return {
+    metric: s.name,
+    unit: s.unit,
+    value: last?.value ?? null,
+    delta: last && prev ? last.value - prev.value : null,
+  };
+});
+
+// tabs: publications grouped by type
+const publications = allPublications(index, ministry!);
+const TAB_ORDER: [string, string][] = [
+  ["analysis", "Анализи"],
+  ["weekly_report", "Седмични"],
+  ["news_digest", "Дайджести"],
+  ["correction", "Поправки"],
+];
+const tabs = TAB_ORDER.map(([type, label]) => ({
+  type,
+  label,
+  items: publications.filter((p) => p.type === type),
+})).filter((tab) => tab.items.length > 0);
+const otherPubs = publications.filter(
+  (p) => !TAB_ORDER.some(([type]) => type === p.type),
+);
+if (otherPubs.length > 0) {
+  tabs.push({ type: "other", label: "Други", items: otherPubs });
+}
+
+const fmtValue = (v: number): string =>
+  Number.isInteger(v)
+    ? v.toLocaleString("bg-BG")
+    : v.toLocaleString("bg-BG", { maximumFractionDigits: 2 });
 ---
 
 <Base title={name}>
@@ -32,14 +74,90 @@ const latestDay = dates[0] ? loadDay(index, ministry!, dates[0]) : [];
     <a href="/">Кабинет</a> / {name}
   </nav>
 
+  <header class="ministry-hero card">
+    <div class="hero-main">
+      <div class="avatar" aria-hidden="true">{initials(name)}</div>
+      <div>
+        <h1>{name}</h1>
+        {member?.persona && (
+          <p class="muted persona-line">
+            AI министър „{member.persona}" — {member.persona_style}.
+            {member.enabled ? "" : " Министерството се подготвя за активиране."}
+          </p>
+        )}
+      </div>
+    </div>
+    {kpis.length > 0 && (
+      <div class="kpi-row">
+        {kpis.map((kpi) => (
+          <div class="kpi">
+            <span class="kpi-metric">{kpi.metric}</span>
+            <span class="kpi-value">
+              {kpi.value !== null ? fmtValue(kpi.value) : "—"}
+              <span class="kpi-unit">{kpi.unit}</span>
+            </span>
+            {kpi.delta !== null && (
+              <span class="kpi-delta muted">
+                {kpi.delta > 0 ? "▲" : kpi.delta < 0 ? "▼" : "→"}
+                {" "}{fmtValue(Math.abs(kpi.delta))}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+  </header>
+
+  {timeseries && timeseries.series.length > 0 && (
+    <TimeseriesCharts timeseries={timeseries} />
+  )}
+
+  {tabs.length > 0 && (
+    <section class="card pubs-card">
+      <div class="tab-bar" role="tablist" aria-label="Публикации по тип">
+        {tabs.map((tab, i) => (
+          <button
+            class="tab-btn"
+            role="tab"
+            id={`tab-${tab.type}`}
+            aria-controls={`panel-${tab.type}`}
+            aria-selected={i === 0 ? "true" : "false"}
+          >
+            {tab.label} <span class="muted">({tab.items.length})</span>
+          </button>
+        ))}
+      </div>
+      {tabs.map((tab, i) => (
+        <ul
+          class="pub-list"
+          role="tabpanel"
+          id={`panel-${tab.type}`}
+          aria-labelledby={`tab-${tab.type}`}
+          hidden={i !== 0}
+        >
+          {tab.items.map((pub) => (
+            <li>
+              <a href={`/${pub.slug}/${pub.date}/`}>
+                {pub.report?.title ?? TYPE_LABELS[pub.type] ?? pub.type}
+              </a>
+              <span class="muted"> — {pub.date}</span>
+              {pub.correctedBy.length > 0 && (
+                <span class="tag corrected-mini">поправен</span>
+              )}
+            </li>
+          ))}
+        </ul>
+      ))}
+    </section>
+  )}
+
   {latestDay.length > 0 ? (
-    latestDay.map((pub) => <DayView day={pub} names={index.names} />)
+    <>
+      <h2 class="latest-title">Най-нова публикация</h2>
+      {latestDay.map((pub) => <DayView day={pub} names={index.names} />)}
+    </>
   ) : (
     <section class="card empty-state">
-      <h1>{name}</h1>
-      {member?.persona && (
-        <p class="muted">AI министър „{member.persona}" · {member.persona_style}</p>
-      )}
       <p>
         Още няма публикувани отчети.
         {member?.enabled
@@ -48,28 +166,127 @@ const latestDay = dates[0] ? loadDay(index, ministry!, dates[0]) : [];
       </p>
     </section>
   )}
-
-  {dates.length > 1 && (
-    <section class="archive-links">
-      <h2>Предишни публикации</h2>
-      <ul>
-        {dates.slice(1).map((date) => (
-          <li><a href={`/${ministry}/${date}/`}>{date}</a></li>
-        ))}
-      </ul>
-    </section>
-  )}
 </Base>
+
+<script>
+  const tabButtons = document.querySelectorAll<HTMLButtonElement>(".tab-btn");
+  for (const button of tabButtons) {
+    button.addEventListener("click", () => {
+      for (const other of tabButtons) {
+        const selected = other === button;
+        other.setAttribute("aria-selected", selected ? "true" : "false");
+        const panel = document.getElementById(
+          other.getAttribute("aria-controls") ?? "",
+        );
+        if (panel) panel.hidden = !selected;
+      }
+    });
+  }
+</script>
 
 <style>
   .crumbs {
     margin-bottom: 18px;
     font-size: 14px;
   }
-  .archive-links h2 {
-    font-size: 17px;
+  .ministry-hero {
+    margin-bottom: 22px;
   }
-  .empty-state h1 {
-    margin-top: 0;
+  .hero-main {
+    display: flex;
+    gap: 18px;
+    align-items: center;
+  }
+  .hero-main h1 {
+    margin: 0;
+    font-size: clamp(23px, 3vw, 32px);
+  }
+  .persona-line {
+    margin: 4px 0 0;
+    font-size: 14px;
+  }
+  .avatar {
+    flex: 0 0 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: var(--accent-contrast);
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    font-size: 19px;
+  }
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+  }
+  .kpi {
+    display: flex;
+    flex-direction: column;
+  }
+  .kpi-metric {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .kpi-value {
+    font-family: var(--font-serif);
+    font-size: 27px;
+    font-weight: 600;
+  }
+  .kpi-unit {
+    font-size: 14px;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+  .kpi-delta {
+    font-size: 12.5px;
+  }
+
+  .pubs-card {
+    margin-bottom: 26px;
+  }
+  .tab-bar {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
+  .tab-btn {
+    font: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  .tab-btn[aria-selected="true"] {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+  .pub-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 9px;
+    font-size: 15px;
+  }
+  .corrected-mini {
+    margin-left: 8px;
+    background: var(--warn-bg);
+    color: var(--warn-ink);
+    font-size: 11.5px;
+  }
+  .latest-title {
+    font-size: 21px;
+    margin: 30px 0 14px;
   }
 </style>

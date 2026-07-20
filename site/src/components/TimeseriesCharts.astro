@@ -1,0 +1,193 @@
+---
+/** Interactive full-history charts from timeseries.json (zoom, periods). */
+import type { Timeseries } from "../lib/published";
+
+interface Props {
+  timeseries: Timeseries;
+}
+const { timeseries } = Astro.props;
+const payload = JSON.stringify(timeseries.series);
+const periods = [
+  { key: "1m", label: "1м" },
+  { key: "6m", label: "6м" },
+  { key: "1y", label: "1г" },
+  { key: "all", label: "всички" },
+];
+---
+
+<section class="card ts-card">
+  <div class="ts-head">
+    <h2>Показатели във времето</h2>
+    <div class="period-picker" role="group" aria-label="Период">
+      {periods.map((p, i) => (
+        <button
+          class="period-btn"
+          data-period={p.key}
+          aria-pressed={i === periods.length - 1 ? "true" : "false"}
+        >
+          {p.label}
+        </button>
+      ))}
+    </div>
+  </div>
+  <div class="ts-grid" data-timeseries={payload}>
+    {timeseries.series.map((series, i) => (
+      <figure>
+        <div class="ts-chart" data-ts-index={i}></div>
+        <figcaption class="muted">
+          {series.name} ({series.unit}) · източник:
+          <a href={series.source.url} rel="noopener">{series.source.title}</a>
+        </figcaption>
+      </figure>
+    ))}
+  </div>
+</section>
+
+<script>
+  import * as echarts from "echarts";
+
+  interface Point {
+    label: string;
+    value: number;
+    published: string;
+  }
+  interface Entry {
+    name: string;
+    unit: string;
+    points: Point[];
+  }
+
+  const grid = document.querySelector<HTMLElement>("[data-timeseries]");
+  if (grid) {
+    const series = JSON.parse(grid.dataset.timeseries ?? "[]") as Entry[];
+    const charts: { chart: echarts.ECharts; entry: Entry }[] = [];
+
+    const accent =
+      getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() ||
+      "#0d5c46";
+    const muted =
+      getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() ||
+      "#5a6672";
+
+    const cutoff = (period: string): number => {
+      const now = Date.now();
+      const day = 86_400_000;
+      if (period === "1m") return now - 31 * day;
+      if (period === "6m") return now - 183 * day;
+      if (period === "1y") return now - 366 * day;
+      return 0;
+    };
+
+    const render = (entryPoints: Point[], entry: Entry, chart: echarts.ECharts) => {
+      chart.setOption({
+        color: [accent],
+        grid: { left: 52, right: 18, top: 20, bottom: 46 },
+        tooltip: { trigger: "axis" },
+        dataZoom: [
+          { type: "inside" },
+          { type: "slider", height: 16, bottom: 6 },
+        ],
+        xAxis: {
+          type: "category",
+          data: entryPoints.map((p) => p.label),
+          axisLabel: { color: muted },
+        },
+        yAxis: {
+          type: "value",
+          name: entry.unit,
+          axisLabel: { color: muted },
+          splitLine: { lineStyle: { opacity: 0.35 } },
+        },
+        series: [
+          {
+            name: entry.name,
+            type: entryPoints.length > 1 ? "line" : "bar",
+            data: entryPoints.map((p) => p.value),
+            smooth: true,
+            showSymbol: entryPoints.length < 40,
+          },
+        ],
+      });
+    };
+
+    for (const el of grid.querySelectorAll<HTMLElement>(".ts-chart")) {
+      const entry = series[Number(el.dataset.tsIndex)];
+      if (!entry) continue;
+      const chart = echarts.init(el);
+      render(entry.points, entry, chart);
+      charts.push({ chart, entry });
+      window.addEventListener("resize", () => chart.resize());
+    }
+
+    const buttons = document.querySelectorAll<HTMLButtonElement>(".period-btn");
+    for (const button of buttons) {
+      button.addEventListener("click", () => {
+        const period = button.dataset.period ?? "all";
+        const since = cutoff(period);
+        for (const { chart, entry } of charts) {
+          const points =
+            since === 0
+              ? entry.points
+              : entry.points.filter((p) => Date.parse(p.published) >= since);
+          render(points.length > 0 ? points : entry.points, entry, chart);
+        }
+        for (const other of buttons) {
+          other.setAttribute("aria-pressed", other === button ? "true" : "false");
+        }
+      });
+    }
+  }
+</script>
+
+<style>
+  .ts-card {
+    margin-bottom: 26px;
+  }
+  .ts-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .ts-head h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+  }
+  .period-picker {
+    display: flex;
+    gap: 4px;
+  }
+  .period-btn {
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 3px 12px;
+    cursor: pointer;
+  }
+  .period-btn[aria-pressed="true"] {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .ts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    gap: 22px;
+  }
+  .ts-chart {
+    width: 100%;
+    height: 300px;
+  }
+  figure {
+    margin: 0;
+  }
+  figcaption {
+    font-size: 13px;
+    margin-top: 4px;
+  }
+</style>
