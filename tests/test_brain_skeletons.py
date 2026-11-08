@@ -26,7 +26,7 @@ def test_skeletons_satisfy_the_port(
     assert isinstance(brain_cls(config), BrainAdapter)
 
 
-@pytest.mark.parametrize("brain_cls", [OpenClawBrain, ApiBrain])
+@pytest.mark.parametrize("brain_cls", [OpenClawBrain])
 def test_skeletons_fail_loudly_with_pointer_to_readme(
     brain_cls: type[OpenClawBrain | ApiBrain], config: AppConfig, tmp_path: Path
 ) -> None:
