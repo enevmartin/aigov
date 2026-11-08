@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: government
+indicators:
+- id: government.gdp_growth
+  name: Реален растеж на БВП, г/г
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?geo=BG&unit=CLV_PCH_SM&s_adj=SCA&na_item=B1GQ&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/namq_10_gdp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: икономиката расте по-бързо
+  fall_means: икономиката расте по-бавно или се свива
+  enabled: false
+  disabled_reason: „Съветникът“ обобщава публикуваните отчети; собствените му индикатори се включват отделно
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: government.unemployment
+  name: Безработица
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_m?geo=BG&unit=PC_ACT&s_adj=SA&sex=T&age=TOTAL&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/une_rt_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: безработицата расте
+  fall_means: безработицата намалява
+  enabled: false
+  disabled_reason: „Съветникът“ обобщава публикуваните отчети; собствените му индикатори се включват отделно
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-09
+- id: government.hicp
+  name: Инфлация (ХИПЦ)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=BG&unit=RCH_A&coicop18=TOTAL&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: цените растат по-бързо
+  fall_means: цените растат по-бавно
+  enabled: false
+  disabled_reason: „Съветникът“ обобщава публикуваните отчети; собствените му индикатори се включват отделно
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-10
+- id: government.debt
+  name: Държавен дълг
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10q_ggdebt?geo=BG&unit=PC_GDP&sector=S13&na_item=GD&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10q_ggdebt/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: дългът расте спрямо икономиката
+  fall_means: дългът намалява спрямо икономиката
+  enabled: false
+  disabled_reason: „Съветникът“ обобщава публикуваните отчети; собствените му индикатори се включват отделно
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: government.population
+  name: Население към 1 януари
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_pjan?geo=BG&unit=NR&sex=T&age=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/demo_pjan/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: души
+  collector: eurostat_jsonstat
+  rise_means: населението расте
+  fall_means: населението намалява
+  enabled: false
+  disabled_reason: „Съветникът“ обобщава публикуваните отчети; собствените му индикатори се включват отделно
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'

@@ -1,0 +1,115 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: innovation
+indicators:
+- id: innovation.gerd
+  name: Разходи за НИРД
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/rd_e_gerdtot?geo=BG&unit=PC_GDP&sectperf=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/rd_e_gerdtot/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: повече средства за наука и развойна дейност
+  fall_means: по-малко средства за наука и развойна дейност
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: innovation.internet_use
+  name: Редовно използващи интернет
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/isoc_ci_ifp_iu?geo=BG&unit=PC_IND&ind_type=IND_TOTAL&indic_is=I_IUSE&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/isoc_ci_ifp_iu/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от лицата'
+  collector: eurostat_jsonstat
+  rise_means: повече хора използват интернет
+  fall_means: по-малко хора използват интернет
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: данните не се разчитат: dimension ''indic_is'' not filtered
+    to one value (0)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    note: 'данните не се разчитат: dimension ''indic_is'' not filtered to one value (0)'
+- id: innovation.digital_skills
+  name: Поне основни цифрови умения
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/isoc_sk_dskl_i21?geo=BG&unit=PC_IND&ind_type=IND_TOTAL&indic_is=I_DSK2_BAB&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/isoc_sk_dskl_i21/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от лицата'
+  collector: eurostat_jsonstat
+  rise_means: цифровите умения се подобряват
+  fall_means: цифровите умения намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: innovation.egov
+  name: Взаимодействие с публичните органи онлайн
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/isoc_ciegi_ac?geo=BG&unit=PC_IND&ind_type=IND_TOTAL&indic_is=I_IGOV12RT&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/isoc_ciegi_ac/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от лицата'
+  collector: eurostat_jsonstat
+  rise_means: повече хора ползват е-управление
+  fall_means: по-малко хора ползват е-управление
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2021'
+- id: innovation.ict_specialists
+  name: ИКТ специалисти в заетостта
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/isoc_sks_itspt?geo=BG&unit=PC_EMP&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/isoc_sks_itspt/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от заетите'
+  collector: eurostat_jsonstat
+  rise_means: повече ИКТ специалисти
+  fall_means: по-малко ИКТ специалисти
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'

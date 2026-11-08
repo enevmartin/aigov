@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: economy
+indicators:
+- id: economy.industrial_production
+  name: Промишлено производство (индекс, сезонно изгладен)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_inpr_m?geo=BG&unit=I21&s_adj=SCA&nace_r2=B-D&indic_bt=PRD&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sts_inpr_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: индекс 2021=100
+  collector: eurostat_jsonstat
+  rise_means: промишленото производство расте
+  fall_means: промишленото производство намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-08
+- id: economy.retail_volume
+  name: Обем на търговията на дребно
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_trtu_m?geo=BG&unit=I21&s_adj=SCA&nace_r2=G47&indic_bt=VOL_SLS&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sts_trtu_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: индекс 2021=100
+  collector: eurostat_jsonstat
+  rise_means: продажбите на дребно растат
+  fall_means: продажбите на дребно намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-09
+- id: economy.esi
+  name: Индикатор за икономически нагласи
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ei_bssi_m_r2?geo=BG&indic=BS-ESI-I&s_adj=SA&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ei_bssi_m_r2/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: пункта
+  collector: eurostat_jsonstat
+  rise_means: нагласите се подобряват
+  fall_means: нагласите се влошават
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-10
+- id: economy.construction
+  name: Строителна продукция
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_copr_m?geo=BG&unit=I21&s_adj=SCA&nace_r2=F&indic_bt=PRD&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sts_copr_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: индекс 2021=100
+  collector: eurostat_jsonstat
+  rise_means: строителството расте
+  fall_means: строителството намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-08
+- id: economy.exports_share
+  name: Износ на стоки и услуги
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nama_10_gdp?geo=BG&unit=PC_GDP&na_item=P6&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/nama_10_gdp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: износът тежи повече в икономиката
+  fall_means: износът тежи по-малко в икономиката
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'

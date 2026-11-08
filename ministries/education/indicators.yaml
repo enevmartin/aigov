@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: education
+indicators:
+- id: education.early_leavers
+  name: Преждевременно напуснали образованието 18–24 г.
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/edat_lfse_14?geo=BG&unit=PC&sex=T&wstatus=POP&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/edat_lfse_14/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: повече млади напускат рано
+  fall_means: по-малко млади напускат рано
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: education.tertiary
+  name: Висше образование 25–34 г.
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/edat_lfse_03?geo=BG&unit=PC&sex=T&age=Y25-34&isced11=ED5-8&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/edat_lfse_03/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: повече млади имат висше образование
+  fall_means: по-малко млади имат висше образование
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: education.spending
+  name: Публични разходи за образование
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10a_exp?geo=BG&unit=PC_GDP&sector=S13&cofog99=GF09&na_item=TE&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: повече публични средства за образование
+  fall_means: по-малко публични средства за образование
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: education.adult_learning
+  name: Участие на възрастни в обучение (последните 4 седмици)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/trng_lfse_01?geo=BG&unit=PC&sex=T&age=Y25-64&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/trng_lfse_01/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: повече възрастни учат
+  fall_means: по-малко възрастни учат
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: education.neet
+  name: Млади хора нито в заетост, нито в образование (NEET) 15–29 г.
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/edat_lfse_20?geo=BG&unit=PC&sex=T&age=Y15-29&wstatus=NEMP&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/edat_lfse_20/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: повече млади са извън работа и учене
+  fall_means: по-малко млади са извън работа и учене
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'

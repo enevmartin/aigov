@@ -1,0 +1,167 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: health
+indicators:
+- id: health.life_expectancy
+  name: Очаквана продължителност на живота при раждане
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_mlexpec?geo=BG&unit=YR&sex=T&age=Y_LT1&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/demo_mlexpec/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: години
+  collector: eurostat_jsonstat
+  rise_means: хората живеят по-дълго
+  fall_means: очакваната продължителност на живота намалява
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.infant_mortality
+  name: Детска смъртност
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/demo_minfind?geo=BG&unit=RT&indic_de=INFMORRT&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/demo_minfind/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: на 1000 живородени
+  collector: eurostat_jsonstat
+  rise_means: повече деца умират преди първата си година
+  fall_means: по-малко деца умират преди първата си година
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.che_gdp
+  name: Текущи разходи за здравеопазване
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/hlth_sha11_hf?geo=BG&unit=PC_GDP&icha11_hf=TOT_HF&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/hlth_sha11_hf/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: обществото отделя по-голям дял от БВП за здраве
+  fall_means: обществото отделя по-малък дял от БВП за здраве
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.out_of_pocket
+  name: Директни плащания от домакинствата за здраве
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/hlth_sha11_hf?geo=BG&unit=PC_CHE&icha11_hf=HF3&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/hlth_sha11_hf/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от текущите разходи'
+  collector: eurostat_jsonstat
+  rise_means: по-голяма тежест пада директно върху пациентите
+  fall_means: по-малка тежест пада директно върху пациентите
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.pharma_spending
+  name: Разходи за лекарства и медицински консумативи
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/hlth_sha11_hc?geo=BG&unit=MIO_EUR&icha11_hc=HC51&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/hlth_sha11_hc/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: разходите за лекарства растат
+  fall_means: разходите за лекарства намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.hospital_beds
+  name: Болнични легла
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/hlth_rs_bds1?geo=BG&unit=P_HTHAB&facility=HBEDT&hlthcare=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/hlth_rs_bds1/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: на 100 000 души
+  collector: eurostat_jsonstat
+  rise_means: леглата спрямо населението се увеличават
+  fall_means: леглата спрямо населението намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: health.unmet_needs
+  name: Неудовлетворени нужди от медицински преглед (цена, разстояние, чакане)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/hlth_silc_08?geo=BG&unit=PC&reason=TXP_TFAR_WLIST&quant_inc=TOTAL&sex=T&age=Y_GE16&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/hlth_silc_08/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от населението 16+'
+  collector: eurostat_jsonstat
+  rise_means: повече хора не получават нужния преглед
+  fall_means: по-малко хора остават без нужния преглед
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: health.nzok_payments
+  name: Плащания на НЗОК по пера (месечно)
+  source:
+    publisher: НЗОК
+    url: https://www.nhif.bg/
+    page: https://www.nhif.bg/
+    official_api: false
+  frequency: monthly
+  unit: млн. евро
+  collector: csv
+  params:
+    date_column: '-'
+    value_column: '-'
+  rise_means: —
+  fall_means: —
+  verification:
+    verified_at: '2026-11-08'
+    terms: НЕПРОВЕРЕНО
+    http_status: 200
+    robots: allowed
+    note: 'данните не се разчитат: ''-'''
+  enabled: false
+  disabled_reason: 'НЗОК не публикува машинно четим набор (CSV/XLSX/API) с плащания по пера — сайтът отговаря 200, но данните са в HTML/PDF (проверка на живо 2026-11-08); ниво 2, не ниво 1'

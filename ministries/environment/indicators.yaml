@@ -1,0 +1,167 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: environment
+indicators:
+- id: environment.pm25_deaths
+  name: Преждевременни смъртни случаи, свързани с ФПЧ2.5
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sdg_11_52?geo=BG&unit=RT&airpol=PM2_5&effect=PMD&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sdg_11_52/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: на 100 000 души
+  collector: eurostat_jsonstat
+  rise_means: замърсяването на въздуха отнема повече животи
+  fall_means: замърсяването на въздуха отнема по-малко животи
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2023'
+- id: environment.ghg_total
+  name: Емисии на парникови газове (без LULUCF)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/env_air_gge?geo=BG&unit=MIO_T&airpol=GHG&src_crf=TOTX4_MEMO&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/env_air_gge/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: млн. т CO₂-екв.
+  collector: eurostat_jsonstat
+  rise_means: емисиите растат
+  fall_means: емисиите намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: environment.ghg_net
+  name: Нетни емисии на парникови газове на човек
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sdg_13_10?geo=BG&unit=T_HAB&src_crf=TOTXMEMO&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sdg_13_10/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: т CO₂-екв. на човек
+  collector: eurostat_jsonstat
+  rise_means: емисиите растат
+  fall_means: емисиите намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: environment.municipal_waste
+  name: Битови отпадъци на човек
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/env_wasmun?geo=BG&unit=KG_HAB&wst_oper=GEN&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/env_wasmun/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: кг на човек
+  collector: eurostat_jsonstat
+  rise_means: генерират се повече битови отпадъци
+  fall_means: генерират се по-малко битови отпадъци
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: environment.recycling_rate
+  name: Дял на рециклираните битови отпадъци
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/cei_wm011?geo=BG&unit=PC&wst_oper=RCY&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/cei_wm011/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: рециклира се по-голям дял
+  fall_means: рециклира се по-малък дял
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: environment.wastewater
+  name: Население, свързано с поне вторично пречистване на отпадъчни води
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sdg_06_20?geo=BG&unit=PC&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sdg_06_20/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от населението'
+  collector: eurostat_jsonstat
+  rise_means: повече хора са свързани с пречиствателни станции
+  fall_means: по-малко хора са свързани с пречиствателни станции
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: environment.renewables
+  name: Дял на възобновяемата енергия в брутното крайно потребление
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/nrg_ind_ren?geo=BG&unit=PC&nrg_bal=REN&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/nrg_ind_ren/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: делът на чистата енергия расте
+  fall_means: делът на чистата енергия намалява
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: environment.air_quality_cities
+  name: Качество на въздуха по градове (ИАОС)
+  source:
+    publisher: ИАОС
+    url: https://eea.government.bg/bg/
+    page: https://eea.government.bg/bg/
+    official_api: false
+  frequency: daily
+  unit: µg/m³
+  collector: csv
+  params:
+    date_column: '-'
+    value_column: '-'
+  rise_means: —
+  fall_means: —
+  verification:
+    verified_at: '2026-11-08'
+    terms: НЕПРОВЕРЕНО
+    http_status: null
+    robots: disallowed
+    note: robots.txt забранява пътя
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: robots.txt забранява пътя'

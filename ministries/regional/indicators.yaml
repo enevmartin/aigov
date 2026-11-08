@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: regional
+indicators:
+- id: regional.housing_overcrowding
+  name: Пренаселеност на жилищата
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_lvho05a?geo=BG&unit=PC&sex=T&age=TOTAL&incgrp=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ilc_lvho05a/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от населението'
+  collector: eurostat_jsonstat
+  rise_means: повече хора живеят в пренаселени жилища
+  fall_means: по-малко хора живеят в пренаселени жилища
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: regional.house_prices
+  name: Индекс на цените на жилищата
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hpi_q?geo=BG&unit=RCH_A&purchase=TOTAL&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/prc_hpi_q/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '% г/г'
+  collector: eurostat_jsonstat
+  rise_means: жилищата поскъпват по-бързо
+  fall_means: жилищата поскъпват по-бавно или поевтиняват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: regional.building_permits
+  name: Разрешения за строеж на жилищни сгради
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sts_cobp_q?geo=BG&unit=I21&s_adj=NSA&cpa2_1=CPA_F41001&indic_bt=BPRM_SQM&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sts_cobp_q/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: индекс 2021=100
+  collector: eurostat_jsonstat
+  rise_means: разрешенията се увеличават
+  fall_means: разрешенията намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q3
+- id: regional.housing_cost_overburden
+  name: Прекомерна тежест на разходите за жилище
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_lvho07a?geo=BG&unit=PC&sex=T&age=TOTAL&incgrp=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ilc_lvho07a/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от населението'
+  collector: eurostat_jsonstat
+  rise_means: повече домакинства са претоварени
+  fall_means: по-малко домакинства са претоварени
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: regional.housing_spending
+  name: Публични разходи за жилищно строителство и благоустройство
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10a_exp?geo=BG&unit=PC_GDP&sector=S13&cofog99=GF06&na_item=TE&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: повече публични средства
+  fall_means: по-малко публични средства
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'

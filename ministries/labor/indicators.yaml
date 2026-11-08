@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: labor
+indicators:
+- id: labor.unemployment
+  name: Безработица (сезонно изгладена)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/une_rt_m?geo=BG&unit=PC_ACT&s_adj=SA&sex=T&age=TOTAL&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/une_rt_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '% от работната сила'
+  collector: eurostat_jsonstat
+  rise_means: безработицата расте
+  fall_means: безработицата намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-09
+- id: labor.employment_rate
+  name: Коефициент на заетост 20–64 г.
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lfsi_emp_a?geo=BG&unit=PC_POP&sex=T&age=Y20-64&indic_em=EMP_LFS&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/lfsi_emp_a/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: заетостта расте
+  fall_means: заетостта намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: labor.labour_cost
+  name: Индекс на разходите за труд
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lc_lci_r2_q?geo=BG&unit=PCH_SM&s_adj=SCA&nace_r2=B-S&lcstruct=D1_D4_MD5&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/lc_lci_r2_q/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '% г/г'
+  collector: eurostat_jsonstat
+  rise_means: разходите за труд растат по-бързо
+  fall_means: разходите за труд растат по-бавно
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: labor.poverty_risk
+  name: Риск от бедност или социално изключване
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ilc_peps01n?geo=BG&unit=PC&sex=T&age=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ilc_peps01n/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от населението'
+  collector: eurostat_jsonstat
+  rise_means: повече хора са в риск
+  fall_means: по-малко хора са в риск
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: labor.min_wage
+  name: Минимална месечна работна заплата
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/earn_mw_cur?geo=BG&currency=EUR&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/earn_mw_cur/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: евро
+  collector: eurostat_jsonstat
+  rise_means: минималната заплата расте
+  fall_means: минималната заплата намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-S2

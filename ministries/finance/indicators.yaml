@@ -1,0 +1,215 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: finance
+indicators:
+- id: finance.hicp_annual
+  name: Инфлация (ХИПЦ), годишно изменение
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=BG&unit=RCH_A&coicop18=TOTAL&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: цените растат по-бързо спрямо година по-рано
+  fall_means: цените растат по-бавно (или падат) спрямо година по-рано
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-10
+- id: finance.gdp_growth
+  name: Реален растеж на БВП, г/г (сезонно изгладен)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/namq_10_gdp?geo=BG&unit=CLV_PCH_SM&s_adj=SCA&na_item=B1GQ&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/namq_10_gdp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: икономиката расте по-бързо
+  fall_means: икономиката расте по-бавно или се свива
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: finance.gov_debt
+  name: Консолидиран държавен дълг
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10q_ggdebt?geo=BG&unit=PC_GDP&sector=S13&na_item=GD&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10q_ggdebt/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: дългът расте спрямо икономиката
+  fall_means: дългът намалява спрямо икономиката
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: finance.gov_balance
+  name: Бюджетно салдо на сектор „Държавно управление“
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10q_ggnfa?geo=BG&unit=PC_GDP&sector=S13&na_item=B9&s_adj=NSA&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10q_ggnfa/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: '% от БВП'
+  collector: eurostat_jsonstat
+  rise_means: дефицитът намалява / излишъкът расте
+  fall_means: дефицитът расте / излишъкът намалява
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: finance.gov_revenue
+  name: Общи приходи на сектор „Държавно управление“
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10q_ggnfa?geo=BG&unit=MIO_EUR&sector=S13&na_item=TR&s_adj=NSA&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10q_ggnfa/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: приходите растат
+  fall_means: приходите намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: finance.gov_expenditure
+  name: Общи разходи на сектор „Държавно управление“
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10q_ggnfa?geo=BG&unit=MIO_EUR&sector=S13&na_item=TE&s_adj=NSA&lastTimePeriod=20&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10q_ggnfa/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: quarterly
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: разходите растат
+  fall_means: разходите намаляват
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-Q2
+- id: finance.bond_yield
+  name: Дългосрочен лихвен процент (критерий за конвергенция)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/irt_lt_mcby_m?geo=BG&int_rt=MCBY&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/irt_lt_mcby_m/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: държавата заема по-скъпо
+  fall_means: държавата заема по-евтино
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-09
+- id: finance.usd_per_eur
+  name: Курс щатски долар за едно евро (БНБ)
+  source:
+    publisher: БНБ
+    url: https://www.bnb.bg/Statistics/StExternalSector/StExchangeRates/StERForeignCurrencies/index.htm?download=csv&search=&lang=BG
+    page: https://www.bnb.bg/Statistics/StExternalSector/StExchangeRates/StERForeignCurrencies/index.htm
+    official_api: true
+    terms: https://www.bnb.bg/AboutUs/AUTermsOfUse/index.htm
+  frequency: daily
+  unit: USD за 1 евро
+  collector: csv
+  params:
+    skip_rows: 1
+    date_column: Дата
+    value_column: Чуждестранна валута за едно евро
+    date_format: '%d.%m.%Y'
+    where:
+      Код: USD
+  rise_means: еврото поскъпва спрямо долара
+  fall_means: еврото поевтинява спрямо долара
+  verification:
+    verified_at: '2026-11-08'
+    terms: официален export на БНБ; страницата с условия отговаря 200, изрична клауза за повторно ползване
+      не е открита — НЕПРОВЕРЕНО
+    http_status: 200
+    robots: allowed
+    latest_period: '2026-11-06'
+- id: finance.gdp_nominal
+  name: БВП по текущи цени (НСИ, годишно)
+  source:
+    publisher: НСИ
+    url: https://www.nsi.bg/sites/default/files/files/data/timeseries/GDP_1.1.1_ESA_2010_EUR.xlsx
+    page: https://www.nsi.bg/statistical-data/141/432
+    official_api: false
+  frequency: annual
+  unit: млн. евро
+  collector: xlsx
+  params:
+    header_row: 5
+    row_label: БРУТЕН ВЪТРЕШЕН ПРОДУКТ
+  rise_means: номиналният размер на икономиката расте
+  fall_means: номиналният размер на икономиката намалява
+  verification:
+    verified_at: '2026-11-08'
+    terms: официален набор на НСИ (XLSX); страница с условия за ползване не е открита — НЕПРОВЕРЕНО
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: finance.mf_cash_execution
+  name: Месечно касово изпълнение на консолидираната фискална програма (МФ)
+  source:
+    publisher: Министерство на финансите
+    url: https://www.minfin.bg/bg/statistics
+    page: https://www.minfin.bg/bg/statistics
+    official_api: false
+  frequency: monthly
+  unit: млн. евро
+  collector: csv
+  params:
+    date_column: '-'
+    value_column: '-'
+  rise_means: —
+  fall_means: —
+  verification:
+    verified_at: '2026-11-08'
+    terms: НЕПРОВЕРЕНО
+    http_status: 403
+    robots: allowed
+    note: HTTP 403
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 403 (Cloudflare блокира ботове); резервен път: тримесечните приходи/разходи/салдо от Евростат'

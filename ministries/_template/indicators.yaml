@@ -1,0 +1,24 @@
+# Tier-1 indicator registry (чл. 8) — copy to ministries/{slug}/indicators.yaml.
+# Minimum 5 indicators per ministry. Every number on the site comes from here.
+# `verification` is written ONLY by `aigov-data verify` (live check through the
+# polite client: robots.txt, Crawl-delay, bot@aigov.bg). An entry that fails the
+# check is disabled automatically with the reason — never hand-enable it.
+ministry: template
+indicators:
+- id: template.example            # {slug}.{snake_case}
+  name: Пример — име на индикатора на български
+  source:
+    publisher: Евростат            # Евростат | НСИ | БНБ | МФ | НЗОК | ИАОС ...
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=BG&unit=RCH_A&coicop18=TOTAL&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly               # daily | monthly | quarterly | annual
+  unit: '%'
+  collector: eurostat_jsonstat     # eurostat_jsonstat | csv | xlsx
+  params: {}                       # csv: date_column, value_column, where, skip_rows, date_format
+                                   # xlsx: header_row, row_label
+  rise_means: какво означава ръст (неутрално)
+  fall_means: какво означава спад (неутрално)
+  enabled: false
+  disabled_reason: шаблон

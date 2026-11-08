@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: tourism
+indicators:
+- id: tourism.nights
+  name: Нощувки в места за настаняване
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_occ_nim?geo=BG&unit=NR&c_resid=TOTAL&nace_r2=I551-I553&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/tour_occ_nim/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: брой
+  collector: eurostat_jsonstat
+  rise_means: нощувките се увеличават
+  fall_means: нощувките намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-08
+- id: tourism.arrivals
+  name: Пристигания в места за настаняване
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_occ_arm?geo=BG&unit=NR&c_resid=TOTAL&nace_r2=I551-I553&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/tour_occ_arm/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: брой
+  collector: eurostat_jsonstat
+  rise_means: пристиганията се увеличават
+  fall_means: пристиганията намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-08
+- id: tourism.foreign_nights
+  name: Нощувки на чужденци
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_occ_nim?geo=BG&unit=NR&c_resid=FOR&nace_r2=I551-I553&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/tour_occ_nim/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: брой
+  collector: eurostat_jsonstat
+  rise_means: чуждестранните нощувки се увеличават
+  fall_means: чуждестранните нощувки намаляват
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-08
+- id: tourism.bedplaces
+  name: Легла в места за настаняване
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_cap_nat?geo=BG&unit=NR&accomunit=BEDPL&nace_r2=I551-I553&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/tour_cap_nat/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: брой
+  collector: eurostat_jsonstat
+  rise_means: капацитетът расте
+  fall_means: капацитетът намалява
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2025'
+- id: tourism.trips
+  name: Туристически пътувания на жителите
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/tour_dem_tttot?geo=BG&unit=NR&purpose=TOTAL&duration=N1-3&partner=WORLD&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/tour_dem_tttot/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: брой
+  collector: eurostat_jsonstat
+  rise_means: жителите пътуват повече
+  fall_means: жителите пътуват по-малко
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400

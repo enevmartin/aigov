@@ -1,0 +1,114 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: foreign-affairs
+indicators:
+- id: foreign-affairs.exports_eu
+  name: Износ на стоки за ЕС
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ext_st_eu27_2020sitc?geo=BG&unit=MIO_EUR&indic_et=MIO_EXP_VAL&sitc06=TOTAL&partner=EU27_2020&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ext_st_eu27_2020sitc/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: износът за ЕС расте
+  fall_means: износът за ЕС намалява
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: foreign-affairs.trade_balance
+  name: Търговско салдо със стоки с трети страни
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/ext_st_eu27_2020sitc?geo=BG&unit=MIO_EUR&indic_et=MIO_BAL_VAL&sitc06=TOTAL&partner=EXT_EU27_2020&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/ext_st_eu27_2020sitc/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: салдото с трети страни се подобрява
+  fall_means: салдото с трети страни се влошава
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: foreign-affairs.emigration
+  name: Емигранти
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_emi2?geo=BG&unit=NR&citizen=TOTAL&sex=T&age=TOTAL&agedef=COMPLET&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/migr_emi2/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: души
+  collector: eurostat_jsonstat
+  rise_means: повече хора напускат страната
+  fall_means: по-малко хора напускат страната
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: foreign-affairs.immigration
+  name: Имигранти
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/migr_imm1ctz?geo=BG&unit=NR&citizen=TOTAL&sex=T&age=TOTAL&agedef=COMPLET&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/migr_imm1ctz/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: души
+  collector: eurostat_jsonstat
+  rise_means: повече хора се заселват в страната
+  fall_means: по-малко хора се заселват в страната
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: foreign-affairs.spending
+  name: Публични разходи за външноикономическа помощ
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/gov_10a_exp?geo=BG&unit=MIO_EUR&sector=S13&cofog99=GF0102&na_item=TE&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/gov_10a_exp/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: повече средства за помощ
+  fall_means: по-малко средства за помощ
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'

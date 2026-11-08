@@ -1,0 +1,115 @@
+# Tier-1 indicator registry (чл. 8). `verification` is written by
+# `aigov-data verify` from a LIVE check — do not edit it by hand.
+ministry: agriculture
+indicators:
+- id: agriculture.organic_area
+  name: Площи с биологично земеделие
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/sdg_02_40?geo=BG&unit=PC_UAA&crops=UAAXK0000&agprdmet=TOTAL&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/sdg_02_40/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: '% от използваната площ'
+  collector: eurostat_jsonstat
+  rise_means: повече биологично земеделие
+  fall_means: по-малко биологично земеделие
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: '2024'
+- id: agriculture.output
+  name: Продукция на селскостопанския отрасъл
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/aact_eaa01?geo=BG&unit=MIO_EUR&itm_newa=18000&indic_ag=PROD_BP&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/aact_eaa01/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: млн. евро
+  collector: eurostat_jsonstat
+  rise_means: продукцията расте
+  fall_means: продукцията намалява
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: agriculture.income
+  name: Индикатор А за доход от селско стопанство
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/aact_eaa06?geo=BG&unit=I15&indic_ag=INDIC_A&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/aact_eaa06/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: индекс 2015=100
+  collector: eurostat_jsonstat
+  rise_means: доходът в селското стопанство расте
+  fall_means: доходът в селското стопанство намалява
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: HTTP 400'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 400
+    robots: allowed
+    note: HTTP 400
+- id: agriculture.food_prices
+  name: Инфлация на храните (ХИПЦ)
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr?geo=BG&unit=RCH_A&coicop18=CP011&lastTimePeriod=36&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/prc_hicp_minr/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: monthly
+  unit: '%'
+  collector: eurostat_jsonstat
+  rise_means: храните поскъпват по-бързо
+  fall_means: храните поскъпват по-бавно
+  enabled: false
+  disabled_reason: 'министерството е декларирано, но не е активно (config.yaml enabled: false)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    latest_period: 2026-09
+- id: agriculture.wheat_production
+  name: Производство на пшеница
+  source:
+    publisher: Евростат
+    url: https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/apro_cpsh1?geo=BG&strucpro=PR_HU_EU&crops=C1100&lastTimePeriod=15&format=JSON&lang=EN
+    page: https://ec.europa.eu/eurostat/databrowser/view/apro_cpsh1/default/table?lang=en
+    terms: https://ec.europa.eu/eurostat/web/main/help/copyright-notice
+    official_api: true
+  frequency: annual
+  unit: хил. т
+  collector: eurostat_jsonstat
+  rise_means: производството расте
+  fall_means: производството намалява
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-08: данните не се разчитат: dimension ''strucpro'' not filtered
+    to one value (0)'
+  verification:
+    verified_at: '2026-11-08'
+    terms: CC BY 4.0 — свободно повторно ползване с посочване на Евростат (страницата е проверена на живо
+      2026-11-08)
+    http_status: 200
+    robots: allowed
+    note: 'данните не се разчитат: dimension ''strucpro'' not filtered to one value (0)'
