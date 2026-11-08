@@ -1,7 +1,7 @@
 """Generic RSS/Atom collector, configured from a ministry's declaration.
 
 ``parse_feed`` is a pure function over feed XML (fully testable offline);
-``collect_rss`` drives fetching through :class:`ScraperBase` and writes the
+``collect_rss`` drives fetching through :class:`core.net.PoliteClient` and writes the
 combined result as parquet into ``data/staging/``.
 """
 
@@ -11,12 +11,22 @@ from calendar import timegm
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Protocol
 
 import feedparser
+import httpx
 import polars as pl
 from pydantic import BaseModel, ConfigDict
 
-from core.ingest.scraper_base import ScraperBase
+from core.net import PoliteClient
+
+
+class Fetcher(Protocol):
+    """Anything with ``fetch(url)`` — PoliteClient in production."""
+
+    def fetch(self, url: str) -> httpx.Response: ...
+
+    def close(self) -> None: ...
 
 
 class FeedItem(BaseModel):
@@ -99,7 +109,7 @@ def collect_rss(
     sources: list[dict[str, str]],
     staging_dir: Path,
     ministry: str,
-    scraper: ScraperBase | None = None,
+    scraper: Fetcher | None = None,
 ) -> IngestResult:
     """Fetch every feed in *sources* and stage the combined items as parquet.
 
@@ -109,7 +119,7 @@ def collect_rss(
     source's outcome is reported so the health ledger can track degradation.
     """
     own_scraper = scraper is None
-    scraper = scraper or ScraperBase()
+    scraper = scraper or PoliteClient()  # robots.txt + Crawl-delay enforced
     all_items: list[FeedItem] = []
     results: list[SourceResult] = []
     try:
