@@ -15,9 +15,9 @@ Measurements on a clean worktree of HEAD `8e5fb84` (scratchpad); uncommitted WIP
 | 8 | Сигурност и право | done | без секрети; XSS вектор; npm audit critical; без CSP |
 | 9 | Реалност | НЕПРОВЕРЕНО | aigov.bg NXDOMAIN (DoH 1.1.1.1, 2026-11-08); sessions.json само fake (0.046s, tokens null) |
 | 10 | Harness пейзаж (subagents) | done | 2 research subagents, URL+дата |
-| 11 | Harness engineering | in progress |  |
+| 11 | Harness engineering | done | 5 предложения в AUDIT §5.2; /goal проверен в docs |
 | 12 | Spike (branch) | done | branch spike/api 4b49948, 7 теста зелени, без merge |
-| 13 | Доклад | todo | |
+| 13 | Доклад | done | AUDIT-2026-11.md: 6 раздела, 5 🔴 / 15 🟠 / 12 🟢 |
 
 ## Spot-checks на subagent находки
 Лично проверени от одитора (команда + изход в evidence/notes.md):
@@ -27,3 +27,6 @@ Measurements on a clean worktree of HEAD `8e5fb84` (scratchpad); uncommitted WIP
 - Статистика агент: `core/ingest/capture.py:15` „Append-only… nothing is ever deleted“ (WIP) ✓; export SKILL.md без YAML frontmatter ✓
 - Сайтове/статистика агенти (противоречие за НСИ URL): /113, /117, /136, /141/432 — и четирите валидни (заглавия) ✓
 - Кабинет агент: имената economy:1, innovation:1 съвпадат с решението от 08.05.2026 ✓
+- Блок 10 (claude агент): support.claude.com/en/articles/15036540 — цитатът „Update June 15, 2026 … paused“ потвърден лично ✓
+- Блок 11: code.claude.com/docs/en/headless.md — „-p runs start in Manual mode … call that needs approval is denied“ и „-p … loads … CLAUDE.md“ потвърдени лично ✓
+- F-01 XSS възпроизведен лично в scratch build ✓
