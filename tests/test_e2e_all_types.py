@@ -7,6 +7,7 @@ FIRST session's publications — exactly like production.
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -73,16 +74,22 @@ def stage_news(repo: Path, ministry: str) -> None:
     assert result.staged is not None
 
 
-def enqueue_direct(repo: Path, ministry: str, task_type: str, suffix: str) -> None:
-    """Bypass staging for types whose input the CLI cannot fabricate in tests."""
+def enqueue_direct(
+    repo: Path, ministry: str, task_type: str, suffix: str, today: datetime
+) -> None:
+    """Bypass staging for types whose input the CLI cannot fabricate in tests.
+
+    *today* is injected from the same clock the CLI uses, so these tasks and
+    the CLI-enqueued ones land on one publication day whatever the system date.
+    """
     queue = FileQueue(repo / "tasks")
     queue.enqueue(
         TaskSpec.model_validate(
             {
-                "id": f"{ministry}-2026-07-20-{suffix}",
+                "id": f"{ministry}-{today:%Y-%m-%d}-{suffix}",
                 "ministry": ministry,
                 "type": task_type,
-                "created": "2026-07-20T06:00:00",
+                "created": today.replace(tzinfo=None).isoformat(timespec="seconds"),
             }
         ),
         input_files={"staging/data.parquet": b"x"},
@@ -91,14 +98,15 @@ def enqueue_direct(repo: Path, ministry: str, task_type: str, suffix: str) -> No
 
 def test_every_task_type_reaches_published(repo: Path) -> None:
     run = lambda *argv: main(["--root", str(repo), *argv])  # noqa: E731
+    today = datetime.now(tz=UTC)  # injected today: the CLI's own clock
 
     # --- round 1: data-driven types --------------------------------------
     stage_news(repo, "finance")
     assert run("enqueue", "--ministry", "finance", "--type", "news_digest") == 0
     stage_news(repo, "finance")
     assert run("enqueue", "--ministry", "finance", "--type", "analysis") == 0
-    enqueue_direct(repo, "finance", "crisis_brief", "crisis-brief")
-    enqueue_direct(repo, "finance", "signal_triage", "signal-triage")
+    enqueue_direct(repo, "finance", "crisis_brief", "crisis-brief", today)
+    enqueue_direct(repo, "finance", "signal_triage", "signal-triage", today)
     stage_news(repo, "health")
     assert run("enqueue", "--ministry", "health", "--type", "news_digest") == 0
 
@@ -113,12 +121,15 @@ def test_every_task_type_reaches_published(repo: Path) -> None:
     assert run("publish") == 0
 
     # --- round 3: the operator orders a correction of a published day ----
-    finance_days = sorted(
-        p.name for p in (repo / "published" / "finance").iterdir() if p.is_dir()
+    # target the day that actually holds the digest — never "the first day",
+    # which depended on the system date (AUDIT-2026-11 F-06)
+    digest_days = sorted(
+        p.parent.name for p in (repo / "published" / "finance").glob("*/news_digest")
     )
+    assert digest_days, "round 1 published no finance news_digest"
     assert (
         run(
-            "correct", "finance", finance_days[0],
+            "correct", "finance", digest_days[0],
             "--type", "news_digest", "--note", "грешно число",
         )
         == 0
