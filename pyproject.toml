@@ -14,10 +14,12 @@ dependencies = [
     "polars>=1.0",
     "python-frontmatter>=1.1",
     "duckdb>=1.5.4",
+    "openpyxl>=3.1.5",
 ]
 
 [project.scripts]
 aigov = "core.cli:main"
+aigov-data = "core.datacli:main"
 
 [dependency-groups]
 dev = [
