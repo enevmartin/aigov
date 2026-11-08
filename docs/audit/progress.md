@@ -5,11 +5,11 @@ Measurements on a clean worktree of HEAD `8e5fb84` (scratchpad); uncommitted WIP
 
 | Блок | Тема | Статус | Бележка |
 |---|---|---|---|
-| 1 | Инвентаризация | todo | |
-| 2 | Здраве на кода | todo | |
-| 3 | Архитектурни инварианти | todo | |
-| 4 | Опашка и откази | todo | |
-| 5 | Министрите (subagents) | todo | |
+| 1 | Инвентаризация | done | 36 комита (19-20.07); aigov.bg NXDOMAIN; само fake сесии |
+| 2 | Здраве на кода | done | pytest 1 FAIL (дата-зависим), ruff/mypy OK, cov 94% |
+| 3 | Архитектурни инварианти | done | dynamic import brains в core/cli.py; guardrails не стигат до runner |
+| 4 | Опашка и откази | done | poison task без timeout; publish дата от LLM може да презапише |
+| 5 | Министрите (subagents) | in progress | 4/4 партиди + кабинет върнати; spot-check 4 твърдения ✓ |
 | 6 | Източници (subagents) | todo | |
 | 7 | Сайтът | todo | |
 | 8 | Сигурност и право | todo | |
