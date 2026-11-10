@@ -225,5 +225,12 @@ def _run_one(
         record(outcome)
     else:
         results["done"].append(task_id)
-        review_flow.create_review_task(queue, task_id)
         record("done")
+        # чл. 8: deterministic reconciliation with the collectors FIRST
+        early = review_flow.pre_review(config, queue, task_id)
+        if early is None:
+            review_flow.create_review_task(queue, task_id)
+        elif early == "revised":
+            results["revised"].append(task_id)
+        else:
+            results["failed"].append(task_id)

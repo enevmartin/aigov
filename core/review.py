@@ -3,6 +3,10 @@
 The review itself is an ORDINARY task through the same brain adapter — the
 core adds zero LLM logic. What lives here is deterministic bookkeeping:
 
+- BEFORE any LLM reading, :func:`pre_review` reconciles the report with the
+  collectors deterministically (чл. 8): every ``{{ind:<id>}}`` must exist in
+  ``input/indicators.json``, no bare numbers, no tier-3 evidence. A failure
+  is a ``revise`` decided by the core — no tokens spent on a doomed reading;
 - when an original task completes, :func:`create_review_task` parks it in
   ``review/`` and enqueues a review task whose input is the original's
   output + original input;
@@ -20,8 +24,18 @@ import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 
+import frontmatter
+
 from core.config import AppConfig
-from core.contracts import ReviewResult, ReviewVerdict, TaskSpec, TaskType
+from core.contracts import (
+    EvidenceError,
+    ReviewResult,
+    ReviewVerdict,
+    TaskSpec,
+    TaskType,
+    TierRegistry,
+    validate_evidence,
+)
 from core.publish.health import record_event
 from core.queue import FileQueue, QueueState
 
@@ -44,6 +58,57 @@ def original_task_id(review_id: str) -> str:
 def is_review_task(task_id: str) -> bool:
     """Whether *task_id* names a review task."""
     return task_id.endswith(REVIEW_SUFFIX)
+
+
+CORE_RECONCILER = "core:сверка-с-колекторите"
+
+
+def reconcile(task_dir: Path, tiers: TierRegistry) -> list[str]:
+    """Deterministic number/evidence check of a finished task (no LLM).
+
+    Returns human-readable problems; empty means the numbers and sources of
+    ``output/report.md`` match the collectors' ``input/indicators.json``.
+    """
+    report = task_dir / "output" / "report.md"
+    if not report.is_file():
+        return []  # signal stats, reviews: no prose numbers to reconcile
+    try:
+        post = frontmatter.loads(report.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001 — unparsable output is itself the finding
+        return [f"report.md не може да се прочете: {exc}"]
+    indicators_path = task_dir / "input" / "indicators.json"
+    indicators = (
+        {str(i["id"]): i for i in json.loads(indicators_path.read_text(encoding="utf-8"))}
+        if indicators_path.is_file()
+        else {}
+    )
+    document = task_dir / "input" / "document.json"
+    document_url = (
+        str(json.loads(document.read_text(encoding="utf-8"))["url"])
+        if document.is_file()
+        else None
+    )
+    try:
+        validate_evidence(
+            post.metadata, post.content, indicators, tiers.including(indicators, document_url)
+        )
+    except EvidenceError as exc:
+        return [f"чл. 8: {exc}"]
+    return []
+
+
+def pre_review(config: AppConfig, queue: FileQueue, original_id: str) -> str | None:
+    """Reconcile before the LLM review; on problems send the task back.
+
+    Returns ``None`` when the task may proceed to the (LLM) second reading,
+    else the outcome of the core's own ``revise`` (``"revised"``/``"failed"``).
+    """
+    problems = reconcile(queue.path(QueueState.DONE, original_id), TierRegistry.load(config.root))
+    if not problems:
+        return None
+    spec = queue.load_spec(QueueState.DONE, original_id)
+    queue.move(original_id, QueueState.DONE, QueueState.REVIEW)
+    return _send_back(config, queue, original_id, spec, problems, CORE_RECONCILER)
 
 
 def create_review_task(queue: FileQueue, original_id: str) -> str:
@@ -107,47 +172,53 @@ def apply_verdict(config: AppConfig, queue: FileQueue, review_id: str) -> str:
         queue.move(original_id, QueueState.REVIEW, QueueState.DONE)
         outcome = "approved"
     else:
-        revisions_marker = original_dir / REVISIONS_FILE
-        revisions = (
-            int(revisions_marker.read_text(encoding="utf-8"))
-            if revisions_marker.is_file()
-            else 0
-        )
-        if revisions >= MAX_REVISIONS:
-            queue.fail(
-                original_id,
-                "second revise verdict from review",
-                source_state=QueueState.REVIEW,
-            )
-            record_event(
-                config,
-                kind="task_failed",
-                ministry=spec.ministry,
-                message=(
-                    f"задача {original_id} отхвърлена от второто четене два пъти: "
-                    + "; ".join(result.notes)
-                ),
-            )
-            outcome = "failed"
-        else:
-            revisions_marker.write_text(str(revisions + 1), encoding="utf-8")
-            notes_payload = {
-                "reviewer": reviewer,
-                "notes": result.notes,
-                "revision": revisions + 1,
-            }
-            (original_dir / "input" / f"review_notes-{revisions + 1}.json").write_text(
-                json.dumps(notes_payload, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
-            # discard the rejected output so the rerun starts clean
-            for stale in (original_dir / "output").glob("*"):
-                if stale.is_file():
-                    stale.unlink()
-            queue.move(original_id, QueueState.REVIEW, QueueState.PENDING)
-            outcome = "revised"
+        outcome = _send_back(config, queue, original_id, spec, result.notes, reviewer)
 
     shutil.rmtree(review_dir)
     return outcome
+
+
+def _send_back(
+    config: AppConfig,
+    queue: FileQueue,
+    original_id: str,
+    spec: TaskSpec,
+    notes: list[str],
+    reviewer: str,
+) -> str:
+    """Revise an original parked in ``review/``: back to pending (once), else fail."""
+    original_dir = queue.path(QueueState.REVIEW, original_id)
+    revisions_marker = original_dir / REVISIONS_FILE
+    revisions = (
+        int(revisions_marker.read_text(encoding="utf-8")) if revisions_marker.is_file() else 0
+    )
+    if revisions >= MAX_REVISIONS:
+        queue.fail(
+            original_id,
+            f"second revise verdict ({reviewer}): " + "; ".join(notes),
+            source_state=QueueState.REVIEW,
+        )
+        record_event(
+            config,
+            kind="task_failed",
+            ministry=spec.ministry,
+            message=(
+                f"задача {original_id} отхвърлена от второто четене два пъти: "
+                + "; ".join(notes)
+            ),
+        )
+        return "failed"
+    revisions_marker.write_text(str(revisions + 1), encoding="utf-8")
+    notes_payload = {"reviewer": reviewer, "notes": notes, "revision": revisions + 1}
+    (original_dir / "input" / f"review_notes-{revisions + 1}.json").write_text(
+        json.dumps(notes_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    # discard the rejected output so the rerun starts clean
+    for stale in (original_dir / "output").glob("*"):
+        if stale.is_file():
+            stale.unlink()
+    queue.move(original_id, QueueState.REVIEW, QueueState.PENDING)
+    return "revised"
 
 
 def is_approved(task_dir: Path) -> bool:
