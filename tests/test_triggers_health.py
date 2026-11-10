@@ -108,8 +108,10 @@ MINISTRY_YAML = {
 }
 
 
-class TestCrisisAutoEnqueue:
-    def make_repo(self, tmp_path: Path, titles: list[str]) -> Path:
+class TestMediaIsOnlyATrigger:
+    """чл. 8: a media spike is LOGGED as a signal; it never becomes a task itself."""
+
+    def make_repo(self, tmp_path: Path, items: list[tuple[str, str]]) -> Path:
         (tmp_path / "config.yaml").write_text(
             yaml.safe_dump(
                 {"brain": "claude_code", "ministries": ["finance"], "brains": {}},
@@ -122,9 +124,9 @@ class TestCrisisAutoEnqueue:
         (ministry / "ministry.yaml").write_text(
             yaml.safe_dump(MINISTRY_YAML, allow_unicode=True), encoding="utf-8"
         )
-        items = [
+        feed_items = [
             FeedItem(
-                source_name="Тест",
+                source_name=outlet,
                 source_url="https://example.bg/rss",
                 title=title,
                 link=f"https://example.bg/{i}",
@@ -132,44 +134,38 @@ class TestCrisisAutoEnqueue:
                 published=None,
                 retrieved=datetime.now(tz=UTC),
             )
-            for i, title in enumerate(titles)
+            for i, (outlet, title) in enumerate(items)
         ]
-        items_to_parquet(items, tmp_path / "data" / "staging" / "finance" / "rss-x.parquet")
+        items_to_parquet(feed_items, tmp_path / "data" / "staging" / "finance" / "rss-x.parquet")
         return tmp_path
 
-    def test_spike_enqueues_crisis_task_with_trigger_metadata(self, tmp_path: Path) -> None:
-        from core.cli import _maybe_enqueue_crisis
+    def test_multi_outlet_topic_is_logged_not_enqueued(self, tmp_path: Path) -> None:
+        from core.cli import _record_media_signals
         from core.config import load_config
+        from core.triggers import open_signals
 
-        repo = self.make_repo(tmp_path, ["Фалит на банка", "Втори фалит", "Друго"])
+        repo = self.make_repo(tmp_path, [("Медия А", "Фалит на банка"),
+                                         ("Медия Б", "Втори фалит"), ("Медия А", "Друго")])
         config = load_config(repo)
-        staged = repo / "data" / "staging" / "finance" / "rss-x.parquet"
-        _maybe_enqueue_crisis(config, "finance", staged)
+        _record_media_signals(config, "finance", repo / "data/staging/finance/rss-x.parquet")
 
-        queue = FileQueue(config.path("tasks"))
-        [task_id] = queue.list_tasks(QueueState.PENDING)
-        assert task_id.endswith("-crisis-brief")
-        task_dir = queue.path(QueueState.PENDING, task_id)
-        trigger = json.loads((task_dir / "input" / "trigger.json").read_text(encoding="utf-8"))
-        assert trigger["keywords"] == ["фалит"]
-        # input carries a COPY: the staged parquet stays for the daily digest
-        assert staged.exists()
+        assert FileQueue(config.path("tasks")).list_tasks(QueueState.PENDING) == []
+        [signal] = open_signals(repo)
+        assert signal.keyword == "фалит" and signal.outlets == ["Медия А", "Медия Б"]
 
-        # same-day second trigger is a no-op, not an error
-        _maybe_enqueue_crisis(config, "finance", staged)
-        assert len(queue.list_tasks(QueueState.PENDING)) == 1
+        # same day again: still one signal, still no task
+        _record_media_signals(config, "finance", repo / "data/staging/finance/rss-x.parquet")
+        assert len(open_signals(repo)) == 1
 
-    def test_no_spike_no_task(self, tmp_path: Path) -> None:
-        from core.cli import _maybe_enqueue_crisis
+    def test_single_outlet_is_not_a_signal(self, tmp_path: Path) -> None:
+        from core.cli import _record_media_signals
         from core.config import load_config
+        from core.triggers import open_signals
 
-        repo = self.make_repo(tmp_path, ["Спокоен ден", "Нищо ново"])
-        config = load_config(repo)
-        _maybe_enqueue_crisis(
-            config, "finance", repo / "data" / "staging" / "finance" / "rss-x.parquet"
-        )
-        queue = FileQueue(config.path("tasks"))
-        assert queue.list_tasks(QueueState.PENDING) == []
+        repo = self.make_repo(tmp_path, [("Медия А", "Фалит"), ("Медия А", "Пак фалит")])
+        _record_media_signals(load_config(repo), "finance",
+                              repo / "data/staging/finance/rss-x.parquet")
+        assert open_signals(repo) == []
 
 
 def test_session_records_health_summary(tmp_path: Path) -> None:

@@ -24,11 +24,12 @@ import yaml
 from core.archive import history_payload
 from core.config import AppConfig, load_config
 from core.contracts import TaskSpec, TaskType, export_json_schemas
-from core.ingest import collect_rss, detect_spike
+from core.ingest import collect_rss
 from core.publish import publish_all
 from core.publish.health import record_session, record_source_result
 from core.queue import FileQueue, QueueState
 from core.session import TaskRunner, run_session
+from core.triggers import detect_signals, record_signals
 
 
 def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
@@ -37,64 +38,30 @@ def _load_ministry(config: AppConfig, slug: str) -> dict[str, Any]:
     return cast("dict[str, Any]", yaml.safe_load(path.read_text(encoding="utf-8")))
 
 
-def _maybe_enqueue_crisis(config: AppConfig, slug: str, staged: Path) -> None:
-    """Deterministic spike check over freshly staged news; enqueue on trigger.
+def _record_media_signals(config: AppConfig, slug: str, staged: Path) -> None:
+    """Media are a TRIGGER only (чл. 8): log multi-outlet topics, enqueue nothing.
 
-    Detection is pure Python (чл. 7): the LLM sees the task only after the
-    core decided there is a spike. One crisis task per ministry per day —
-    a second trigger the same day is silently skipped.
+    A ministry keyword in headlines of 2+ different outlets becomes a signal in
+    data/triggers/; ``aigov-data respond`` then looks for tier-1/2 material on
+    the topic, and only that is ever analysed and published.
     """
     declaration = _load_ministry(config, slug)
-    crisis_cfg = declaration.get("crisis_keywords") or {}
-    keywords: list[str] = crisis_cfg.get("keywords", [])
+    keywords: list[str] = (declaration.get("crisis_keywords") or {}).get("keywords", [])
     if not keywords:
         return
-
-    frame = pl.read_parquet(staged)
-    texts = [
-        f"{title} {summary}"
-        for title, summary in zip(frame["title"], frame["summary"], strict=True)
-    ]
-    trigger = detect_spike(texts, keywords, int(crisis_cfg.get("min_hits", 3)))
-    if trigger is None:
-        return
-
-    now = datetime.now(tz=UTC)
-    spec = TaskSpec(
-        id=f"{slug}-{now.strftime('%Y-%m-%d')}-crisis-brief",
-        ministry=slug,
-        type=TaskType.CRISIS_BRIEF,
-        created=now,
-    )
-    trigger_json = json.dumps(
-        {"keywords": trigger.keywords, "counts": trigger.counts},
-        ensure_ascii=False,
-        indent=2,
-    ).encode("utf-8")
-    input_files = {
-        f"staging/{staged.name}": staged.read_bytes(),
-        "trigger.json": trigger_json,
-    }
-    # short history = context against false alarms
-    history = history_payload(config.root / "data" / "archive.duckdb", slug, last_n=6)
-    if history is not None:
-        input_files["history.json"] = history.encode("utf-8")
-
-    queue = FileQueue(config.path("tasks"))
-    try:
-        # input is a COPY of the staged news (the daily digest still needs it)
-        queue.enqueue(spec, input_files=input_files)
-    except FileExistsError:
-        return  # already triggered today
-    print(f"[{slug}] CRISIS trigger {trigger.counts} -> enqueued {spec.id}")
+    rows = pl.read_parquet(staged, columns=["source_name", "title", "summary", "link"]).to_dicts()
+    today = datetime.now(tz=UTC).date()
+    for signal in record_signals(config.root, detect_signals(slug, rows, keywords, today)):
+        print(f"[{slug}] media signal '{signal.keyword}' in {len(signal.outlets)} outlets "
+              "-> searching official sources (aigov-data respond)")
 
 
 def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
     """Collect RSS for one or all ENABLED ministries into staging.
 
     Every source attempt is recorded in the health ledger (3 consecutive
-    failures -> degraded + data_quality_alert); a keyword spike in the fresh
-    items auto-enqueues a crisis_brief task.
+    failures -> degraded + data_quality_alert); a multi-outlet keyword in the
+    fresh items is logged as a media SIGNAL only (чл. 8) — never a task.
     """
     slugs = [ministry] if ministry else [m.slug for m in config.enabled_ministries()]
     staged_any = False
@@ -115,7 +82,7 @@ def cmd_ingest(config: AppConfig, ministry: str | None) -> int:
             print(f"[{slug}] staged {result.staged.relative_to(config.root)} "
                   f"({result.items} items)")
             staged_any = True
-            _maybe_enqueue_crisis(config, slug, result.staged)
+            _record_media_signals(config, slug, result.staged)
     return 0 if staged_any or not slugs else 1
 
 
