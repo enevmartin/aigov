@@ -2,9 +2,17 @@
 
 These models ARE the system's interface: a brain consumes a task directory
 described by :class:`TaskSpec` and produces artifacts validated against
-:class:`Report`, :class:`Aggregates` and :class:`NewsDigest`.
+:class:`Report` (numbers only as ``{{ind:<id>}}`` references, чл. 8).
 """
 
+from core.contracts.evidence import (
+    EvidenceError,
+    TierRegistry,
+    check_bare_numbers,
+    indicator_refs,
+    render_refs,
+    validate_evidence,
+)
 from core.contracts.export import export_json_schemas
 from core.contracts.models import (
     OPTIONAL_ARTIFACTS,
@@ -16,10 +24,10 @@ from core.contracts.models import (
     CorrectionRef,
     CorrectionReport,
     CrisisReport,
+    DocumentRef,
+    EventAnalysisReport,
     HealthEvent,
     JointReport,
-    NewsDigest,
-    NewsItem,
     Report,
     ReviewResult,
     ReviewVerdict,
@@ -46,8 +54,8 @@ __all__ = [
     "CrisisReport",
     "HealthEvent",
     "JointReport",
-    "NewsDigest",
-    "NewsItem",
+    "DocumentRef",
+    "EventAnalysisReport",
     "Report",
     "SignalCategoryStat",
     "SignalStats",
@@ -57,4 +65,10 @@ __all__ = [
     "TaskSpec",
     "TaskType",
     "export_json_schemas",
+    "EvidenceError",
+    "TierRegistry",
+    "check_bare_numbers",
+    "indicator_refs",
+    "render_refs",
+    "validate_evidence",
 ]

@@ -47,7 +47,7 @@ def enqueue(config: AppConfig, task_id: str, ministry: str) -> FileQueue:
             {
                 "id": task_id,
                 "ministry": ministry,
-                "type": "news_digest",
+                "type": "analysis",
                 "created": "2026-07-20T06:00:00",
             }
         )

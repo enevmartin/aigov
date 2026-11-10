@@ -15,6 +15,7 @@ from core.publish import publish_all
 from core.queue import FileQueue, QueueState
 from core.session import run_session
 from tests.fake_brain import FakeBrain, approve_marker
+from tests.support import indicators_json, with_indicators
 
 
 @pytest.fixture
@@ -27,6 +28,8 @@ def repo(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     (tmp_path / "ministries" / "finance" / "prompts").mkdir(parents=True)
+    (tmp_path / "data" / "indicators").mkdir(parents=True)
+    (tmp_path / "data" / "indicators" / "finance.json").write_bytes(indicators_json())
     return tmp_path
 
 
@@ -43,7 +46,7 @@ def publish_original(repo: Path, task_id: str = "finance-2026-07-19-an") -> AppC
                 "created": "2026-07-19T06:00:00",
             }
         ),
-        input_files={"staging/x.parquet": b"x"},
+        input_files=with_indicators({"staging/x.parquet": b"x"}),
     )
     queue.claim(task_id)
     FakeBrain().run(queue.path(QueueState.RUNNING, task_id))
@@ -122,11 +125,11 @@ class TestCorrectionCycle:
                     "created": "2026-07-20T06:00:00",
                 }
             ),
-            input_files={
+            input_files=with_indicators({
                 "correction_request.json": json.dumps(
                     {"ministry": "finance", "date": "2020-01-01"}
                 ).encode("utf-8")
-            },
+            }),
         )
         queue.claim("finance-2026-07-20-correction")
         FakeBrain().run(queue.path(QueueState.RUNNING, "finance-2026-07-20-correction"))

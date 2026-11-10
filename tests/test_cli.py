@@ -9,6 +9,7 @@ import yaml
 
 from core.cli import main
 from core.ingest.rss import FeedItem, items_to_parquet
+from tests.support import indicators_json
 from tests.test_ingest import RSS_XML  # noqa: F401 — reused fixture data
 
 MINISTRY_YAML = {
@@ -35,7 +36,10 @@ def repo(tmp_path: Path) -> Path:
     (ministry / "ministry.yaml").write_text(
         yaml.safe_dump(MINISTRY_YAML, allow_unicode=True), encoding="utf-8"
     )
-    (ministry / "prompts" / "news.md").write_text("Резюмирай.", encoding="utf-8")
+    (ministry / "prompts" / "event_analysis.md").write_text("Документ.", encoding="utf-8")
+    collected = tmp_path / "data" / "indicators"
+    collected.mkdir(parents=True)
+    (collected / "finance.json").write_bytes(indicators_json())  # aigov-data collect
     (ministry / "prompts" / "analysis.md").write_text("Анализирай.", encoding="utf-8")
 
     from datetime import UTC, datetime
@@ -65,10 +69,12 @@ class TestOperatorFlow:
     def test_enqueue_session_publish_status(
         self, repo: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        # enqueue consumes staging
-        assert run(repo, "enqueue", "--ministry", "finance", "--type", "news_digest") == 0
+        # enqueue attaches the collector's tier-1 numbers (never media items)
+        assert run(repo, "enqueue", "--ministry", "finance", "--type", "analysis") == 0
         assert "enqueued finance-" in capsys.readouterr().out
-        assert not list((repo / "data" / "staging" / "finance").glob("*.parquet"))
+        [task] = list((repo / "tasks" / "pending").glob("finance-*"))
+        assert (task / "input" / "indicators.json").is_file()
+        assert not (task / "input" / "staging").exists()
 
         # dry-run session: fake brain, no CLI, no tokens
         assert run(repo, "session", "--dry-run") == 0
@@ -89,13 +95,12 @@ class TestOperatorFlow:
         assert "pending  0" in out
         assert "published/finance: 1 day(s)" in out
 
-    def test_enqueue_without_staged_data_fails(
+    def test_enqueue_without_collected_indicators_fails(
         self, repo: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        for p in (repo / "data" / "staging" / "finance").glob("*.parquet"):
-            p.unlink()
+        (repo / "data" / "indicators" / "finance.json").unlink()
         assert run(repo, "enqueue", "--ministry", "finance") == 1
-        assert "no staged data" in capsys.readouterr().out
+        assert "no collected indicators" in capsys.readouterr().out
 
     def test_publish_with_nothing_done_is_ok(self, repo: Path) -> None:
         assert run(repo, "publish") == 0

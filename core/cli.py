@@ -147,6 +147,18 @@ def _published_input(
     return files
 
 
+def _indicator_input(config: AppConfig, slugs: list[str], files: dict[str, bytes]) -> bool:
+    """Attach ``indicators.json`` (collector summaries, data/indicators/) to *files*."""
+    merged: list[object] = []
+    for slug in slugs:
+        path = config.root / "data" / "indicators" / f"{slug}.json"
+        if path.is_file():
+            merged.extend(json.loads(path.read_text(encoding="utf-8")))
+    if merged:
+        files["indicators.json"] = json.dumps(merged, ensure_ascii=False, indent=2).encode()
+    return bool(merged)
+
+
 def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
     """Create a pending task with type-appropriate input.
 
@@ -184,11 +196,21 @@ def cmd_enqueue(config: AppConfig, ministry: str, task_type: str) -> int:
         # quarterly priorities: the ministry's own recent work is the input;
         # a first-ever plan legitimately starts from a blank slate
         input_files = _published_input(config, [ministry], days=30)
+    elif t is TaskType.EVENT_ANALYSIS:
+        print("event_analysis is created by the document watchers, not by hand")
+        return 1
     else:
-        input_files, consumed = _staged_input(config, ministry)
-        if not input_files:
-            print(f"[{ministry}] no staged data — run 'aigov ingest' first")
+        # чл. 8: analyses and crisis briefs work on tier-1 numbers ONLY — the
+        # collectors' summaries, never media items from staging
+        input_files = {}
+        if not _indicator_input(config, [ministry], input_files):
+            print(f"[{ministry}] no collected indicators — run 'aigov-data collect' first")
             return 1
+
+    # every report gets the tier-1 numbers it may reference ({{ind:<id>}})
+    if t in (TaskType.WEEKLY_REPORT, TaskType.PLAN, TaskType.JOINT_REPORT):
+        slugs = [m.slug for m in config.enabled_ministries()]
+        _indicator_input(config, slugs if t is TaskType.JOINT_REPORT else [ministry], input_files)
 
     # institutional memory: analyses compare against the ministry's own trend
     if t in (TaskType.ANALYSIS, TaskType.WEEKLY_REPORT, TaskType.CRISIS_BRIEF, TaskType.PLAN):
@@ -305,6 +327,7 @@ def cmd_correct(
     input_files["correction_request.json"] = json.dumps(
         request, ensure_ascii=False, indent=2
     ).encode("utf-8")
+    _indicator_input(config, [ministry], input_files)  # corrected numbers: tier 1 only
 
     now = datetime.now(tz=UTC)
     spec = TaskSpec(
@@ -373,7 +396,7 @@ def main(argv: list[str] | None = None) -> int:
     p_enqueue.add_argument("--ministry", required=True)
     p_enqueue.add_argument(
         "--type",
-        default=TaskType.NEWS_DIGEST.value,
+        default=TaskType.ANALYSIS.value,
         # review is created automatically by the session; correction has its
         # own command (aigov correct) that assembles the right input
         choices=[

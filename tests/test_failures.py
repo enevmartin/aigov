@@ -15,6 +15,7 @@ from core.publish import publish_all
 from core.queue import FileQueue, QueueState
 from core.session import ATTEMPTS_FILE, STALE_AFTER, run_session
 from tests.fake_brain import FakeBrain
+from tests.support import with_indicators
 
 
 @pytest.fixture
@@ -31,11 +32,11 @@ def enqueue(config: AppConfig, task_id: str) -> FileQueue:
             {
                 "id": task_id,
                 "ministry": "finance",
-                "type": "news_digest",
+                "type": "analysis",
                 "created": "2026-07-20T06:00:00",
             }
         ),
-        input_files={"staging/x.parquet": b"x"},
+        input_files=with_indicators({"staging/x.parquet": b"x"}),
     )
     return queue
 
@@ -140,11 +141,11 @@ class TestIsolation:
         run_session(config, lambda _n: FakeBrain())
 
         # corrupt ONE done output
-        bad = queue.path(QueueState.DONE, "finance-2026-07-20-a") / "output" / "news.json"
-        bad.write_text("{счупено", encoding="utf-8")
+        bad = queue.path(QueueState.DONE, "finance-2026-07-20-a") / "output" / "report.md"
+        bad.write_text("---\nministry: [счупено\n---\n", encoding="utf-8")
 
         results = publish_all(config)
         assert results["published"] == ["finance-2026-07-20-b"]
         assert results["rejected"] == ["finance-2026-07-20-a"]
-        report = config.path("published") / "finance" / "2026-07-20" / "news_digest" / "report.md"
+        report = config.path("published") / "finance" / "2026-07-20" / "analysis" / "report.md"
         assert report.is_file()

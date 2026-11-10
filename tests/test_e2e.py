@@ -1,60 +1,63 @@
-"""End-to-end: ingest -> enqueue -> fake brain -> contract-valid output.
+"""End-to-end: recorded tier-1 payload -> collector -> task -> fake brain -> valid output.
 
-No network, no LLM. Step 7 (core/publish) extends this flow into
-``published/``.
+No network, no LLM. The numbers the minister may talk about are computed by
+the collector from a RECORDED official payload; the brain only references them.
 """
 
 from __future__ import annotations
 
 import json
+from datetime import date
 from pathlib import Path
 
 import frontmatter
-import httpx
 
 from brains.base import ArtifactSet, BrainAdapter
-from core.contracts import Aggregates, NewsDigest, Report, TaskSpec, export_json_schemas
-from core.ingest import ScraperBase, collect_rss
+from core.contracts import (
+    Report,
+    TaskSpec,
+    TierRegistry,
+    indicator_refs,
+    validate_evidence,
+)
+from core.indicators import load_registry, parse, summarize
 from core.queue import FileQueue, QueueState
 from tests.fake_brain import FakeBrain
-from tests.test_ingest import RSS_XML
+
+ROOT = Path(__file__).resolve().parent.parent
+FIXTURES = ROOT / "tests" / "fixtures" / "indicators"
 
 
 def test_fake_brain_satisfies_the_port() -> None:
     assert isinstance(FakeBrain(), BrainAdapter)
 
 
-def test_full_pipeline_with_fake_brain(tmp_path: Path) -> None:
-    # --- 1. ingest: RSS -> staged parquet (offline transport) -------------
-    scraper = ScraperBase(
-        min_interval=0, transport=httpx.MockTransport(lambda _: httpx.Response(200, text=RSS_XML))
-    )
-    result = collect_rss(
-        [{"name": "Тест медия", "url": "https://example.bg/rss"}],
-        tmp_path / "staging",
-        "finance",
-        scraper=scraper,
-    )
-    scraper.close()
-    staged = result.staged
-    assert staged is not None
+def _collected() -> list[dict[str, object]]:
+    registry = load_registry(ROOT / "ministries", "finance")
+    assert registry is not None
+    spec = registry.get("finance.hicp_annual")
+    assert spec is not None
+    rows = parse(spec, (FIXTURES / "finance.hicp_annual.json").read_bytes())
+    return [summarize(spec, rows, today=date(2026, 11, 8)).model_dump(mode="json")]
 
-    # --- 2. enqueue: staged data becomes a task's input -------------------
+
+def test_full_pipeline_with_fake_brain(tmp_path: Path) -> None:
+    # --- 1. collector: recorded Eurostat payload -> computed summary --------
+    summaries = _collected()
+    assert summaries[0]["period"] == "2026-10"
+
+    # --- 2. enqueue: the collector's numbers become the task's input --------
     queue = FileQueue(tmp_path / "tasks")
-    schemas_dir = tmp_path / "schemas"
-    export_json_schemas(schemas_dir)
     spec = TaskSpec.model_validate(
         {
-            "id": "finance-2026-07-19-digest",
+            "id": "finance-2026-11-08-analysis",
             "ministry": "finance",
-            "type": "news_digest",
-            "created": "2026-07-19T06:00:00",
+            "type": "analysis",
+            "created": "2026-11-08T06:00:00",
         }
     )
     queue.enqueue(
-        spec,
-        input_files={f"staging/{staged.name}": staged.read_bytes()},
-        expected_schema=(schemas_dir / "aggregates.schema.json").read_text(encoding="utf-8"),
+        spec, input_files={"indicators.json": json.dumps(summaries, ensure_ascii=False).encode()}
     )
 
     # --- 3. brain: claim -> run -> complete -------------------------------
@@ -63,32 +66,24 @@ def test_full_pipeline_with_fake_brain(tmp_path: Path) -> None:
     done = queue.complete(spec.id)
     assert queue.state_of(spec.id) == QueueState.DONE
 
-    # --- 4. output validates against the contract -------------------------
+    # --- 4. output obeys the contract AND чл. 8 ------------------------------
     output = done / "output"
     post = frontmatter.loads((output / "report.md").read_text(encoding="utf-8"))
     report = Report.model_validate(post.metadata)
     assert report.ministry == "finance"
-    assert report.sources, "legal guardrail: report must cite sources"
-    assert "Анализ" in post.content
+    assert [s.url.host for s in report.sources] == ["ec.europa.eu"]
+    assert ("finance.hicp_annual", "value") in indicator_refs(post.content)
+    indicators = {str(s["id"]): s for s in summaries}
+    validate_evidence(post.metadata, post.content, indicators, TierRegistry.load(ROOT))
+    assert not (output / "aggregates.json").exists()  # numbers are never the brain's
 
-    aggregates = Aggregates.model_validate(
-        json.loads((output / "aggregates.json").read_text(encoding="utf-8"))
-    )
-    assert aggregates.series[0].values == [1.0]  # exactly one staged input file
-
-    news = NewsDigest.model_validate(json.loads((output / "news.json").read_text(encoding="utf-8")))
-    assert news.items[0].source.url is not None
-
-    # ArtifactSet named the same files (dir has since moved running/ -> done/)
-    expected = ArtifactSet.from_output_dir(output)
-    assert artifacts.report.name == expected.report.name
-    assert artifacts.aggregates.name == expected.aggregates.name
-    assert artifacts.news is not None and expected.news is not None
-    assert artifacts.news.name == expected.news.name
+    assert artifacts.report is not None
+    assert ArtifactSet.from_output_dir(output).report == output / "report.md"
 
 
 def test_fake_brain_is_deterministic(tmp_path: Path) -> None:
     """Same task in -> byte-identical artifacts out (twice)."""
+    payload = json.dumps(_collected(), ensure_ascii=False).encode()
 
     def build_and_run(root: Path) -> dict[str, bytes]:
         queue = FileQueue(root / "tasks")
@@ -100,13 +95,12 @@ def test_fake_brain_is_deterministic(tmp_path: Path) -> None:
                 "created": "2026-07-19T06:00:00",
             }
         )
-        queue.enqueue(spec, input_files={"data.parquet": b"x"})
+        queue.enqueue(spec, input_files={"indicators.json": payload})
         running = queue.claim(spec.id)
         FakeBrain().run(running)
-        output = running / "output"
-        return {p.name: p.read_bytes() for p in output.iterdir()}
+        return {p.name: p.read_bytes() for p in (running / "output").iterdir()}
 
     first = build_and_run(tmp_path / "a")
     second = build_and_run(tmp_path / "b")
     assert first == second
-    assert set(first) == {"report.md", "aggregates.json"}  # no news.json for analysis
+    assert set(first) == {"report.md"}

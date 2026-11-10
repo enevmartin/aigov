@@ -12,8 +12,7 @@ from pydantic import ValidationError
 from core.contracts import (
     Aggregates,
     AggregateSeries,
-    NewsDigest,
-    NewsItem,
+    EventAnalysisReport,
     Report,
     SourceCitation,
     TaskSpec,
@@ -30,9 +29,9 @@ CITATION = {
 
 def make_task(**overrides: object) -> dict[str, object]:
     base: dict[str, object] = {
-        "id": "finance-2026-07-19-news",
+        "id": "finance-2026-07-19-analysis",
         "ministry": "finance",
-        "type": "news_digest",
+        "type": "analysis",
         "created": "2026-07-19T06:00:00",
     }
     base.update(overrides)
@@ -42,7 +41,7 @@ def make_task(**overrides: object) -> dict[str, object]:
 class TestTaskSpec:
     def test_valid_minimal(self) -> None:
         task = TaskSpec.model_validate(make_task())
-        assert task.type is TaskType.NEWS_DIGEST
+        assert task.type is TaskType.ANALYSIS
         assert task.deadline is None
 
     def test_valid_with_deadline(self) -> None:
@@ -130,32 +129,36 @@ class TestAggregates:
             )
 
 
-class TestNewsDigest:
+class TestEventAnalysisReport:
+    DOC = {
+        "url": "https://www.parliament.bg/bg/bills/ID/1",
+        "title": "Законопроект за държавния бюджет",
+        "publisher": "Народно събрание",
+        "kind": "законопроект",
+        "retrieved": "2026-11-08",
+        "sha256": "a" * 64,
+    }
+
     def test_valid(self) -> None:
-        digest = NewsDigest.model_validate(
-            {
-                "ministry": "finance",
-                "date": "2026-07-19",
-                "items": [
-                    {
-                        "title": "БНБ запазва основния лихвен процент",
-                        "summary": "Централната банка остави ОЛП без промяна.",
-                        "source": CITATION,
-                    }
-                ],
-            }
+        report = EventAnalysisReport.model_validate(
+            {"ministry": "finance", "date": "2026-11-08", "title": "Анализ",
+             "summary": "Неутрален анализ.", "sources": [CITATION], "document": self.DOC}
         )
-        assert len(digest.items) == 1
+        assert report.document.kind == "законопроект"
 
-    def test_item_without_source_rejected(self) -> None:
-        """Every news item must carry its citation."""
+    def test_document_is_required(self) -> None:
         with pytest.raises(ValidationError):
-            NewsItem.model_validate({"title": "Новина", "summary": "…"})
+            EventAnalysisReport.model_validate(
+                {"ministry": "finance", "date": "2026-11-08", "title": "Анализ",
+                 "summary": "Неутрален анализ.", "sources": [CITATION]}
+            )
 
-    def test_empty_digest_rejected(self) -> None:
+    def test_document_needs_content_hash(self) -> None:
         with pytest.raises(ValidationError):
-            NewsDigest.model_validate(
-                {"ministry": "finance", "date": "2026-07-19", "items": []}
+            EventAnalysisReport.model_validate(
+                {"ministry": "finance", "date": "2026-11-08", "title": "Анализ",
+                 "summary": "s", "sources": [CITATION],
+                 "document": {**self.DOC, "sha256": "not-a-hash"}}
             )
 
 
@@ -166,9 +169,9 @@ class TestJsonSchemaExport:
         assert names == [
             "aggregates.schema.json",
             "crisis_report.schema.json",
+            "event_analysis_report.schema.json",
             "health.schema.json",
             "joint_report.schema.json",
-            "news.schema.json",
             "report.schema.json",
             "signals.schema.json",
             "task.schema.json",

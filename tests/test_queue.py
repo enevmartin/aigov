@@ -1,5 +1,4 @@
 """File queue tests: atomic transitions, race safety, crash recovery."""
-
 from __future__ import annotations
 
 import os
@@ -10,6 +9,7 @@ import pytest
 
 from core.contracts import TaskSpec
 from core.queue import FileQueue, QueueState
+from tests.support import with_indicators
 
 
 @pytest.fixture
@@ -22,7 +22,7 @@ def make_spec(task_id: str = "finance-2026-07-19-news") -> TaskSpec:
         {
             "id": task_id,
             "ministry": "finance",
-            "type": "news_digest",
+            "type": "analysis",
             "created": "2026-07-19T06:00:00",
         }
     )
@@ -32,7 +32,7 @@ class TestEnqueue:
     def test_creates_pending_directory_with_contract_files(self, queue: FileQueue) -> None:
         path = queue.enqueue(
             make_spec(),
-            input_files={"news/feed.json": b"[]"},
+            input_files=with_indicators({"news/feed.json": b"[]"}),
             expected_schema='{"type": "object"}',
         )
         assert path == queue.path(QueueState.PENDING, "finance-2026-07-19-news")

@@ -31,7 +31,7 @@ from core.session import run_session
 # task type -> prompt file inside ministries/{slug}/prompts/
 PROMPT_FILES: dict[TaskType, str] = {
     TaskType.ANALYSIS: "analysis.md",
-    TaskType.NEWS_DIGEST: "news.md",
+    TaskType.EVENT_ANALYSIS: "event_analysis.md",
     TaskType.WEEKLY_REPORT: "weekly.md",
     TaskType.CRISIS_BRIEF: "crisis.md",
     TaskType.JOINT_REPORT: "joint.md",
@@ -49,11 +49,12 @@ CONTRACT_INSTRUCTIONS = """\
 
 1. `output/report.md` — анализ на български с YAML front-matter:
    `ministry`, `date` (YYYY-MM-DD), `title`, `summary`,
-   `sources` (списък от {url, title, retrieved}).
-2. `output/aggregates.json` — числата за дашборда; трябва да е валиден срещу
-   `expected.schema.json` в директорията на задачата.
-3. `output/news.json` — САМО за задачи от тип news_digest: резюмирани новини,
-   всяка със своя източник {url, title, retrieved}.
+   `sources` (списък от {url, title, retrieved}) — САМО официални източници
+   от ниво 1/2 (тези от `input/indicators.json` или документа на задачата).
+2. ЧИСЛА НЕ ПИШЕШ. Всяка стойност, промяна или сравнение е референция към
+   `input/indicators.json`: `{{ind:<id>}}`, `{{ind:<id>.change}}`,
+   `{{ind:<id>.change_pct}}`, `{{ind:<id>.yoy_change}}`, `{{ind:<id>.period}}`.
+   Цифра извън референция (освен година, дата или „чл. N“) → отчетът се отхвърля.
 
 Правни предпазители (ненарушими): всяко твърдение цитира източник (URL + дата
 на извличане); никакви твърдения за конкретни лица, политически внушения или

@@ -16,32 +16,26 @@ from typing import Protocol, runtime_checkable
 
 OUTPUT_DIR = "output"
 REPORT_FILE = "report.md"
-AGGREGATES_FILE = "aggregates.json"
-NEWS_FILE = "news.json"
 
 
 @dataclass(frozen=True)
 class ArtifactSet:
     """Paths of the artifacts a brain produced for one task.
 
-    ``news`` is ``None`` unless the task type calls for a digest. Paths point
-    inside ``{task_dir}/output/``; validation and publishing are the core's
-    job (``core/publish``), never the brain's.
+    Contract v2 (чл. 8): a brain writes prose (``report.md``) or a verdict /
+    aggregate count (``review.json``, ``signals.json``) — never numbers for
+    the dashboard. Validation and publishing are the core's job.
     """
 
-    report: Path
-    aggregates: Path
-    news: Path | None = None
+    report: Path | None
+    files: tuple[Path, ...] = ()
 
     @classmethod
     def from_output_dir(cls, output_dir: Path) -> ArtifactSet:
         """Build the set from a conventional ``output/`` directory layout."""
-        news = output_dir / NEWS_FILE
-        return cls(
-            report=output_dir / REPORT_FILE,
-            aggregates=output_dir / AGGREGATES_FILE,
-            news=news if news.exists() else None,
-        )
+        report = output_dir / REPORT_FILE
+        files = tuple(sorted(p for p in output_dir.iterdir() if p.is_file()))
+        return cls(report=report if report.exists() else None, files=files)
 
 
 @runtime_checkable

@@ -42,7 +42,7 @@ class TestSessionLedger:
                 {
                     "id": "finance-2026-07-20-digest",
                     "ministry": "finance",
-                    "type": "news_digest",
+                    "type": "analysis",
                     "created": "2026-07-20T06:00:00",
                 }
             )
@@ -60,7 +60,7 @@ class TestSessionLedger:
         review = by_id["finance-2026-07-20-digest-review"]
 
         assert original["ministry"] == "finance"
-        assert original["type"] == "news_digest"
+        assert original["type"] == "analysis"
         assert original["brain"] == "fake"
         assert original["outcome"] == "done"
         assert original["duration_s"] >= 0

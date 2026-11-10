@@ -13,6 +13,7 @@ from core.contracts import Aggregates, TaskSpec
 from core.publish import publish_all
 from core.queue import FileQueue, QueueState
 from tests.fake_brain import FakeBrain, approve_marker
+from tests.support import with_indicators
 
 CITATION = {"url": "https://www.bnb.bg/", "title": "БНБ", "retrieved": "2026-07-20"}
 
@@ -92,7 +93,7 @@ class TestPublishIntegration:
             TaskSpec.model_validate(
                 {"id": task_id, "ministry": "finance", "type": "analysis", "created": created}
             ),
-            input_files={"staging/x.parquet": b"x"},
+            input_files=with_indicators({"staging/x.parquet": b"x"}),
         )
         queue.claim(task_id)
         FakeBrain().run(queue.path(QueueState.RUNNING, task_id))
@@ -109,5 +110,7 @@ class TestPublishIntegration:
             )
         )
         [series] = timeseries["series"]
-        assert len(series["points"]) == 2  # one point per publication day
-        assert (config.root / "data" / "archive.duckdb").is_file()
+        # чл. 8: the public series is the COLLECTOR's trend (official periods),
+        # not one brain-made point per publication day
+        assert [p["label"] for p in series["points"]] == ["2026-08", "2026-09", "2026-10"]
+        assert series["source"]["title"] == "Евростат"

@@ -11,7 +11,7 @@ from core.config import load_config
 from core.contracts import TaskType
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-REQUIRED_PROMPTS = {"analysis.md", "news.md", "report.md"}
+REQUIRED_PROMPTS = {"analysis.md", "event_analysis.md", "report.md"}
 REQUIRED_KEYS = {"name", "slug", "minister_persona", "sources", "guardrails"}
 
 

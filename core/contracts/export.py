@@ -15,8 +15,8 @@ from pydantic import BaseModel
 from core.contracts.models import (
     Aggregates,
     CrisisReport,
+    EventAnalysisReport,
     JointReport,
-    NewsDigest,
     Report,
     SignalStats,
     SystemHealth,
@@ -28,8 +28,8 @@ _EXPORTED: dict[str, type[BaseModel]] = {
     "report": Report,
     "crisis_report": CrisisReport,
     "joint_report": JointReport,
+    "event_analysis_report": EventAnalysisReport,
     "aggregates": Aggregates,
-    "news": NewsDigest,
     "signals": SignalStats,
     "health": SystemHealth,
 }

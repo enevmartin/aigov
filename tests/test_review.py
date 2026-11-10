@@ -13,6 +13,7 @@ from core.publish import publish_all
 from core.queue import FileQueue, QueueState
 from core.session import run_session
 from tests.fake_brain import FakeBrain
+from tests.support import with_indicators
 
 
 @pytest.fixture
@@ -29,11 +30,11 @@ def enqueue(config: AppConfig, task_id: str = "finance-2026-07-20-digest") -> Fi
             {
                 "id": task_id,
                 "ministry": "finance",
-                "type": "news_digest",
+                "type": "analysis",
                 "created": "2026-07-20T06:00:00",
             }
         ),
-        input_files={"staging/x.parquet": b"x"},
+        input_files=with_indicators({"staging/x.parquet": b"x"}),
     )
     return queue
 
@@ -87,7 +88,7 @@ class TestApprovePath:
         publish = publish_all(config)
         assert publish["published"] == ["finance-2026-07-20-digest"]
         report = (
-            config.path("published") / "finance" / "2026-07-20" / "news_digest" / "report.md"
+            config.path("published") / "finance" / "2026-07-20" / "analysis" / "report.md"
         ).read_text(encoding="utf-8")
         assert "reviewed: true" in report
         assert "reviewer: test-reviewer" in report

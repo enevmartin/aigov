@@ -1,7 +1,9 @@
 """Pydantic models for the file-based task contract.
 
 Everything a brain reads (``task.yaml``) or writes (``report.md`` front-matter,
-``aggregates.json``, ``news.json``) is validated against these models.
+``signals.json``, ``review.json``) is validated against these models. Since
+contract v2 (чл. 8) a brain NEVER writes numbers: ``input/indicators.json`` is
+produced by the collectors and the report references it as ``{{ind:<id>}}``.
 ``core.publish`` is the enforcement point: invalid output never reaches
 ``published/``.
 """
@@ -19,15 +21,15 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 class TaskType(StrEnum):
     """The kinds of work a ministry can be asked to do (all situations)."""
 
-    ANALYSIS = "analysis"            # new statistical data arrived
-    NEWS_DIGEST = "news_digest"      # daily news summary
+    ANALYSIS = "analysis"  # new official (tier-1) data arrived
+    EVENT_ANALYSIS = "event_analysis"  # a tier-2 official document appeared
     WEEKLY_REPORT = "weekly_report"  # Sunday consolidated report
-    CRISIS_BRIEF = "crisis_brief"    # keyword spike detected by core (no LLM)
-    JOINT_REPORT = "joint_report"    # "prime minister" composes published reports
+    CRISIS_BRIEF = "crisis_brief"  # keyword spike detected by core (no LLM)
+    JOINT_REPORT = "joint_report"  # "prime minister" composes published reports
     SIGNAL_TRIAGE = "signal_triage"  # citizen signals -> aggregate stats (phase 3)
-    REVIEW = "review"                # second reading of another task's output
-    CORRECTION = "correction"        # first-class correction of a past publication
-    PLAN = "plan"                    # quarterly priorities of a minister
+    REVIEW = "review"  # second reading of another task's output
+    CORRECTION = "correction"  # first-class correction of a past publication
+    PLAN = "plan"  # quarterly priorities of a minister
 
 
 class TaskSpec(BaseModel):
@@ -78,8 +80,11 @@ class Report(BaseModel):
     title: str = Field(min_length=1)
     summary: str = Field(min_length=1, description="1-3 sentence summary in Bulgarian")
     sources: list[SourceCitation] = Field(
-        min_length=1, description="Legal guardrail: a report with no sources is invalid"
+        min_length=1,
+        description="Tier-1/2 evidence ONLY (decided by the registry, чл. 8)",
     )
+    # Tier-3 media that merely signalled the topic — never evidence for a fact.
+    trigger: list[SourceCitation] = Field(default_factory=list)
     # Stamped by core/publish after an approved review (never by the brain).
     reviewed: bool = False
     reviewer: str | None = None
@@ -115,27 +120,6 @@ class Aggregates(BaseModel):
     ministry: str = Field(min_length=1)
     date: Date
     series: list[AggregateSeries] = Field(min_length=1)
-
-
-class NewsItem(BaseModel):
-    """One summarized news item with its source (mandatory)."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    title: str = Field(min_length=1, description="Original headline (Bulgarian)")
-    summary: str = Field(min_length=1, description="Neutral 1-2 sentence summary in Bulgarian")
-    source: SourceCitation
-    published: datetime | None = None
-
-
-class NewsDigest(BaseModel):
-    """``news.json`` — the daily digest for a ministry."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    ministry: str = Field(min_length=1)
-    date: Date
-    items: list[NewsItem] = Field(min_length=1)
 
 
 class ReviewVerdict(StrEnum):
@@ -215,6 +199,25 @@ class CorrectionReport(Report):
     corrects: CorrectionRef
 
 
+class DocumentRef(BaseModel):
+    """The tier-2 official document an ``event_analysis`` is about."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    url: HttpUrl
+    title: str = Field(min_length=1)
+    publisher: str = Field(min_length=1, description="e.g. Народно събрание, МС, МФ")
+    kind: str = Field(min_length=1, description="законопроект, решение, обсъждане ...")
+    retrieved: Date
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class EventAnalysisReport(Report):
+    """Front-matter of an ``event_analysis``: neutral analysis of ONE document."""
+
+    document: DocumentRef
+
+
 class SignalCategoryStat(BaseModel):
     """One anonymized category bucket of citizen signals."""
 
@@ -286,10 +289,12 @@ class SystemHealth(BaseModel):
 
 # --- Which files each task type must (and may) produce in output/ -----------
 
+# Contract v2 (чл. 8): no brain writes aggregates.json or news.json any more —
+# numbers come from the collectors via input/indicators.json.
 REQUIRED_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
-    TaskType.ANALYSIS: ("report.md", "aggregates.json"),
-    TaskType.NEWS_DIGEST: ("report.md", "aggregates.json", "news.json"),
-    TaskType.WEEKLY_REPORT: ("report.md", "aggregates.json"),
+    TaskType.ANALYSIS: ("report.md",),
+    TaskType.EVENT_ANALYSIS: ("report.md",),
+    TaskType.WEEKLY_REPORT: ("report.md",),
     TaskType.CRISIS_BRIEF: ("report.md",),
     TaskType.JOINT_REPORT: ("report.md",),
     TaskType.SIGNAL_TRIAGE: ("signals.json",),
@@ -300,20 +305,20 @@ REQUIRED_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
 
 OPTIONAL_ARTIFACTS: dict[TaskType, tuple[str, ...]] = {
     TaskType.ANALYSIS: (),
-    TaskType.NEWS_DIGEST: (),
+    TaskType.EVENT_ANALYSIS: (),
     TaskType.WEEKLY_REPORT: (),
-    TaskType.CRISIS_BRIEF: ("aggregates.json",),
-    TaskType.JOINT_REPORT: ("aggregates.json",),
-    TaskType.SIGNAL_TRIAGE: ("report.md",),
+    TaskType.CRISIS_BRIEF: (),
+    TaskType.JOINT_REPORT: (),
+    TaskType.SIGNAL_TRIAGE: (),
     TaskType.REVIEW: (),
-    TaskType.CORRECTION: ("aggregates.json",),  # corrected numbers, when numeric
+    TaskType.CORRECTION: (),
     TaskType.PLAN: (),
 }
 
 # Which model validates report.md front-matter for each type.
 REPORT_MODEL: dict[TaskType, type[Report]] = {
     TaskType.ANALYSIS: Report,
-    TaskType.NEWS_DIGEST: Report,
+    TaskType.EVENT_ANALYSIS: EventAnalysisReport,
     TaskType.WEEKLY_REPORT: Report,
     TaskType.CRISIS_BRIEF: CrisisReport,
     TaskType.JOINT_REPORT: JointReport,

@@ -23,6 +23,7 @@ from core.contracts import (
 from core.publish import publish_all
 from core.queue import FileQueue, QueueState
 from tests.fake_brain import FakeBrain, approve_marker
+from tests.support import with_indicators
 
 CITATION = {
     "url": "https://www.bnb.bg/Statistics/",
@@ -117,18 +118,31 @@ def config(tmp_path: Path) -> AppConfig:
     return cfg
 
 
+DOCUMENT = {
+    "url": "https://www.parliament.bg/bg/bills/ID/1",
+    "title": "Законопроект за държавния бюджет",
+    "publisher": "Народно събрание",
+    "kind": "законопроект",
+    "retrieved": "2026-07-20",
+    "sha256": "b" * 64,
+    "text": "Член първи. Текстът на законопроекта.",
+}
+
+
 def run_type(config: AppConfig, task_type: str, ministry: str = "finance") -> FileQueue:
     queue = FileQueue(config.path("tasks"))
     task_id = f"{ministry}-2026-07-20-{task_type.replace('_', '-')}"
     spec = TaskSpec.model_validate(
         {"id": task_id, "ministry": ministry, "type": task_type, "created": "2026-07-20T06:00:00"}
     )
-    input_files = {"staging/data.parquet": b"x"}
+    input_files = with_indicators()
     if task_type == "joint_report":
-        input_files = {
+        input_files = with_indicators({
             "published/finance/2026-07-19/report.md": b"a",
             "published/health/2026-07-19/report.md": b"b",
-        }
+        })
+    if task_type == "event_analysis":
+        input_files["document.json"] = json.dumps(DOCUMENT, ensure_ascii=False).encode()
     queue.enqueue(spec, input_files=input_files)
     queue.claim(task_id)
     FakeBrain().run(queue.path(QueueState.RUNNING, task_id))
@@ -141,10 +155,10 @@ class TestPublishPerType:
     @pytest.mark.parametrize(
         ("task_type", "expected_files"),
         [
-            ("analysis", {"report.md", "aggregates.json"}),
-            ("news_digest", {"report.md", "aggregates.json", "news.json"}),
-            ("weekly_report", {"report.md", "aggregates.json"}),
-            ("crisis_brief", {"report.md"}),
+            ("analysis", {"report.md", "indicators.json"}),
+            ("event_analysis", {"report.md", "indicators.json"}),
+            ("weekly_report", {"report.md", "indicators.json"}),
+            ("crisis_brief", {"report.md", "indicators.json"}),
             ("signal_triage", {"signals.json"}),
         ],
     )
