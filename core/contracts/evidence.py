@@ -41,6 +41,7 @@ REF = re.compile(r"\{\{ind:([a-z0-9-]+\.[a-z0-9_]+)(?:\.(" + "|".join(REF_FIELDS
 _ALLOWED = [
     r"\b\d{1,2}\.\d{1,2}\.(?:19|20)\d{2}\s*г?\.?",  # 06.11.2026 г.
     r"\b(?:19|20)\d{2}-\d{2}(?:-\d{2})?\b",  # 2026-11 / 2026-11-08
+    r"(?:ФПЧ|PM|CO|NO|SO|O)\s?[₀-₉\d]+(?:[.,]\d+)?",  # pollutant designations
     r"\b(?:19|20)\d{2}-Q[1-4]\b",  # 2026-Q2
     r"\bQ[1-4]\b",
     r"(?:чл|ал|т|бр|стр|гл|разд|прил|точка|алинея|член)\.?\s*\d+[а-я]?",  # legal refs
@@ -136,7 +137,13 @@ def validate_evidence(
     Returns the referenced indicator ids (for the review/reconciliation).
     """
     prose = "\n".join([str(front.get("title", "")), str(front.get("summary", "")), body])
-    bare = check_bare_numbers(prose)
+    # an indicator's official NAME (written by the collector, e.g. "ФПЧ2.5",
+    # "20–64 г.") is not a quantity the model invented
+    named = prose
+    for ind in indicators.values():
+        if ind.get("name"):
+            named = named.replace(str(ind["name"]), " ")
+    bare = check_bare_numbers(named)
     if bare:
         raise EvidenceError(f"число без референция към индикатор от ниво 1: {', '.join(bare[:5])}")
     refs = indicator_refs(prose)

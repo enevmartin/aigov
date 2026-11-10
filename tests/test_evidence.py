@@ -222,3 +222,21 @@ def test_fake_brain_report_passes_the_gate(config: AppConfig) -> None:
     queue.complete(spec.id)
     assert publish_all(config)["published"] == [spec.id]
     assert queue.state_of(spec.id) is None or queue.state_of(spec.id) != QueueState.FAILED
+
+
+class TestNamesAreNotQuantities:
+    """Found by the fixtures e2e: "…ФПЧ2.5" in an indicator NAME is not a number."""
+
+    def test_indicator_name_with_digits_is_allowed(self) -> None:
+        ind = {"environment.pm25_deaths": {**summary("environment.pm25_deaths"),
+                                           "name": "Смъртни случаи, свързани с ФПЧ2.5"}}
+        body = "Смъртни случаи, свързани с ФПЧ2.5: {{ind:environment.pm25_deaths}}."
+        assert validate_evidence(FRONT, body, ind, TIERS) == ["environment.pm25_deaths"]
+
+    @pytest.mark.parametrize("text", ["замърсяването с ФПЧ2.5 и PM10", "емисиите на CO2 и CO₂"])
+    def test_pollutant_designations_are_allowed(self, text: str) -> None:
+        assert check_bare_numbers(text) == []
+
+    def test_a_real_number_next_to_a_name_is_still_rejected(self) -> None:
+        with pytest.raises(EvidenceError):
+            validate_evidence(FRONT, "ФПЧ2.5 е 18 µg/m³.", IND, TIERS)
