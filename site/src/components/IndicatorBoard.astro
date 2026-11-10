@@ -60,7 +60,7 @@ function changeText(ind: IndicatorSummary): string {
           {changeText(ind)}
         </p>
         {ind.yoy_change !== null && (
-          <p class="muted ind-yoy">година по-рано: {fmtNumber(ind.year_ago ?? 0)} {ind.unit}</p>
+          <p class="muted ind-yoy">{`година по-рано: ${fmtNumber(ind.year_ago ?? 0)} ${ind.unit}`}</p>
         )}
         {ind.trend.length > 1 && (
           <svg
