@@ -1,0 +1,120 @@
+# Tier-2 official-document watchers (чл. 8). `verification` is written by
+# `aigov-data watch-verify` from a LIVE check — do not edit it by hand.
+watchers:
+- id: parliament.bills
+  name: Внесени законопроекти
+  publisher: Народно събрание
+  kind: законопроект
+  url: https://www.parliament.bg/feed/bills
+  document_api: https://www.parliament.bg/api/v1/bill/{id}
+  redact: [imp_list, MPL_Name, MP_id]  # чл. 5: no persons reach the model
+  id_pattern: /bills/ID/(\d+)
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 50
+- id: parliament.laws
+  name: Приети закони
+  publisher: Народно събрание
+  kind: закон
+  url: https://www.parliament.bg/feed/laws
+  document_api: https://www.parliament.bg/api/v1/law/{id}
+  redact: [imp_list, MPL_Name, MP_id]  # чл. 5: no persons reach the model
+  id_pattern: /laws/ID/(\d+)
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 50
+- id: parliament.decisions
+  name: Решения на Народното събрание
+  publisher: Народно събрание
+  kind: решение на НС
+  url: https://www.parliament.bg/feed/desision
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 50
+- id: dv.issues
+  name: Държавен вестник — брой
+  publisher: Държавен вестник
+  kind: брой на ДВ
+  url: https://dv.parliament.bg/DVWeb/rss_newspaper.jsp
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 14
+- id: strategy.consultations
+  name: Обществени консултации (strategy.bg)
+  publisher: Министерски съвет
+  kind: обществено обсъждане
+  url: https://strategy.bg/rss
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 0
+    note: няма машинно четим поток (RSS/Atom без записи)
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-10: няма машинно четим поток (RSS/Atom без записи)'
+- id: gov.cm_decisions
+  name: Решения на Министерския съвет
+  publisher: Министерски съвет
+  kind: решение на МС
+  url: https://www.gov.bg/bg/prestsentar/reshenia-na-ministerskiya-savet
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 200
+    robots: allowed
+    items: 0
+    note: няма машинно четим поток (RSS/Atom без записи)
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-10: няма машинно четим поток (RSS/Atom без записи)'
+- id: minfin.budget
+  name: Бюджетна процедура (МФ)
+  publisher: Министерство на финансите
+  kind: проектобюджет
+  url: https://www.minfin.bg/bg/procedures
+  verification:
+    verified_at: '2026-11-10'
+    http_status: 403
+    robots: allowed
+    note: HTTP 403
+  enabled: false
+  disabled_reason: 'проверка на живо 2026-11-10: HTTP 403'
+routing:
+  finance:
+  - бюджет
+  - данъ
+  - акциз
+  - дълг
+  - фиск
+  - мит
+  - счетовод
+  - финанс
+  - публичните финанси
+  - евро
+  health:
+  - здрав
+  - лекар
+  - лекарств
+  - болни
+  - медицин
+  - нзок
+  - пациент
+  - имуниз
+  - фармац
+  environment:
+  - околната среда
+  - околна среда
+  - отпадъ
+  - води
+  - въздух
+  - клима
+  - емиси
+  - горите
+  - защитени територии
+  - биологичн

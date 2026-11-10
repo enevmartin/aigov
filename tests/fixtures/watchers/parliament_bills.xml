@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+    <channel>
+        <title><![CDATA[ Народно събрание ]]></title>
+        <link><![CDATA[ https://parliament.bg/feed/bills ]]></link>
+        <description><![CDATA[ Последни законопроекти от Народно събрание  ]]></description>
+        <language>bg-BG</language>
+        <pubDate>2026-11-10 21:24:36</pubDate>
+
+                    <item>
+                <title><![CDATA[Законопроект за изменение и допълнение на Закона за здравето]]></title>
+                <link>https://www.parliament.bg/bg/bills/ID/167635</link>
+                <description><![CDATA[Законопроект за изменение и допълнение на Закона за здравето]]></description>
+                <author><![CDATA['parliament.bg']]></author>
+                <guid>167635</guid>
+                
+                <pubDate>Tue, 10 Nov 2026 00:00:00 +0200</pubDate>
+            </item><item>
+                <title><![CDATA[Законопроект за изменение и допълнение на Закона за личната помощ]]></title>
+                <link>https://www.parliament.bg/bg/bills/ID/167634</link>
+                <description><![CDATA[Законопроект за изменение и допълнение на Закона за личната помощ]]></description>
+                <author><![CDATA['parliament.bg']]></author>
+                <guid>167634</guid>
+                
+                <pubDate>Tue, 10 Nov 2026 00:00:00 +0200</pubDate>
+            </item><item>
+                <title><![CDATA[Законопроект за изменение и допълнение на Кодекса на труда]]></title>
+                <link>https://www.parliament.bg/bg/bills/ID/167633</link>
+                <description><![CDATA[Законопроект за изменение и допълнение на Кодекса на труда]]></description>
+                <author><![CDATA['parliament.bg']]></author>
+                <guid>167633</guid>
+                
+                <pubDate>Tue, 10 Nov 2026 00:00:00 +0200</pubDate>
+            </item>
+            
+            </channel>
+</rss>
