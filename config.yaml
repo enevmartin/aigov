@@ -9,6 +9,9 @@ brains:
     # (conserves the Claude Pro limit). Invoked by deploy/aigov-session.timer.
     cmd: claude
     output_format: json
+    timeout: 900 # seconds per task — a hung task fails instead of blocking the session
+    # Server: set `paths: {tasks: /var/lib/aigov/tasks}` so task dirs (the CLI's
+    # cwd) live OUTSIDE the repo and the repo's CLAUDE.md never reaches a minister.
   openclaw:
     # Skeleton — not implemented. See brains/openclaw/README.md.
     gateway: localhost:18789

@@ -96,15 +96,33 @@ def run_session(config: AppConfig, resolver: BrainResolver) -> dict[str, list[st
     [...], "approved": [...], "revised": [...]}``.
     """
     queue = FileQueue(config.path("tasks"))
-    resumed = queue.requeue_stale(STALE_AFTER)
+    reclaimed = queue.requeue_stale(STALE_AFTER)
     results: dict[str, list[str]] = {
         "done": [],
         "failed": [],
         "retried": [],
-        "resumed": resumed,
+        "resumed": [],
         "approved": [],
         "revised": [],
     }
+
+    # A task stranded in running/ (crash, kill, timeout of the whole session)
+    # COUNTS as an attempt — otherwise a task that always hangs would come
+    # back forever and block every cabinet session (AUDIT-2026-11 F-08).
+    for task_id in reclaimed:
+        attempts = _bump_attempts(queue.path(QueueState.PENDING, task_id))
+        if attempts < MAX_ATTEMPTS:
+            results["resumed"].append(task_id)
+            continue
+        reason = f"изоставена в running/ {attempts} пъти (увисване или срив)"
+        queue.fail(task_id, reason, source_state=QueueState.PENDING)
+        results["failed"].append(task_id)
+        record_event(
+            config,
+            kind="task_failed",
+            ministry=None,
+            message=f"задача {task_id} се провали окончателно: {reason}",
+        )
 
     processed: set[str] = set()
     records: list[dict[str, object]] = []
