@@ -6,8 +6,7 @@ import {
   loadIndex,
   ministryName,
   TYPE_LABELS,
-  type Publication,
-} from "../lib/published";
+  type Publication, safeJson } from "../lib/published";
 
 const index = loadIndex();
 const slugs = new Set([
@@ -84,7 +83,7 @@ const types = [...new Set(searchIndex.map((p) => p.type))];
     ))}
   </div>
 
-  <script type="application/json" id="search-data" set:html={JSON.stringify(searchIndex)} />
+  <script type="application/json" id="search-data" set:html={safeJson(searchIndex)} />
 </Base>
 
 <script>

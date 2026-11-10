@@ -1,0 +1,135 @@
+---
+/**
+ * The state dashboard: tier-1 indicators exactly as the Python collectors
+ * computed them (чл. 8) — last value, change, trend, DATA date, source.
+ * A stale indicator is shown and marked, never hidden.
+ */
+import { fmtNumber, type IndicatorSummary } from "../lib/published";
+
+interface Props {
+  indicators: IndicatorSummary[];
+  ministryLabel?: (id: string) => string | null;
+}
+const { indicators, ministryLabel } = Astro.props;
+
+const W = 120;
+const H = 32;
+function sparkline(points: { value: number }[]): string {
+  if (points.length < 2) return "";
+  const values = points.map((p) => p.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  return values
+    .map((v, i) => {
+      const x = (i / (values.length - 1)) * W;
+      const y = H - 2 - ((v - min) / span) * (H - 4);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+}
+function changeText(ind: IndicatorSummary): string {
+  if (ind.change === null || ind.previous_period === null) return "първо измерване";
+  const arrow = ind.change > 0 ? "▲" : ind.change < 0 ? "▼" : "→";
+  const sign = ind.change > 0 ? "+" : ind.change < 0 ? "−" : "";
+  return `${arrow} ${sign}${fmtNumber(Math.abs(ind.change))} спрямо ${ind.previous_period}`;
+}
+---
+
+{indicators.length === 0 ? (
+  <div class="card">
+    <p class="muted">Още няма събрани официални данни.</p>
+  </div>
+) : (
+  <div class="board">
+    {indicators.map((ind) => (
+      <article class:list={["card", "indicator", { stale: ind.stale }]} data-indicator={ind.id}>
+        {ministryLabel && ministryLabel(ind.id) && (
+          <span class="muted ind-ministry">{ministryLabel(ind.id)}</span>
+        )}
+        <h3 class="ind-name">{ind.name}</h3>
+        <p class="ind-value">
+          {fmtNumber(ind.value)} <span class="ind-unit">{ind.unit}</span>
+        </p>
+        <p
+          class:list={["ind-change", {
+            up: (ind.change ?? 0) > 0,
+            down: (ind.change ?? 0) < 0,
+          }]}
+        >
+          {changeText(ind)}
+        </p>
+        {ind.yoy_change !== null && (
+          <p class="muted ind-yoy">година по-рано: {fmtNumber(ind.year_ago ?? 0)} {ind.unit}</p>
+        )}
+        {ind.trend.length > 1 && (
+          <svg
+            class="spark"
+            viewBox={`0 0 ${W} ${H}`}
+            width={W}
+            height={H}
+            role="img"
+            aria-label={`Тенденция: ${ind.trend[0]!.period} – ${ind.period}`}
+          >
+            <polyline points={sparkline(ind.trend)} fill="none" stroke="currentColor" stroke-width="1.5" />
+          </svg>
+        )}
+        <p class="ind-meta">
+          Данни към <strong>{ind.period}</strong>
+          {ind.stale && <span class="tag stale-tag" title="Нова стойност е трябвало вече да е публикувана">остарял</span>}
+        </p>
+        <p class="ind-source muted">
+          Източник: <a href={ind.source_page} rel="noopener">{ind.publisher}</a>
+        </p>
+      </article>
+    ))}
+  </div>
+)}
+
+<style>
+  .board {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+  }
+  .indicator {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  .indicator.stale {
+    border-style: dashed;
+  }
+  .ind-ministry {
+    font-size: 0.8rem;
+  }
+  .ind-name {
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  .ind-value {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin: 0.25rem 0 0;
+  }
+  .ind-unit {
+    font-size: 0.9rem;
+    font-weight: 400;
+  }
+  .ind-change,
+  .ind-yoy,
+  .ind-meta,
+  .ind-source {
+    font-size: 0.85rem;
+    margin: 0;
+  }
+  .spark {
+    color: var(--accent, currentColor);
+    margin: 0.25rem 0;
+  }
+  .stale-tag {
+    margin-left: 0.4rem;
+    background: var(--warning-bg, #fff3cd);
+    color: var(--warning-fg, #664d03);
+  }
+</style>

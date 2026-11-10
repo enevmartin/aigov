@@ -1,6 +1,7 @@
 ---
 import Base from "../../layouts/Base.astro";
 import DayView from "../../components/DayView.astro";
+import IndicatorBoard from "../../components/IndicatorBoard.astro";
 import TimeseriesCharts from "../../components/TimeseriesCharts.astro";
 import {
   allPublications,
@@ -9,6 +10,7 @@ import {
   loadCabinet,
   loadDay,
   loadIndex,
+  loadIndicators,
   loadTimeseries,
   ministryName,
   TYPE_LABELS,
@@ -30,25 +32,15 @@ const member = index.cabinet.find((m) => m.slug === ministry);
 const dates = datesFor(index, ministry!);
 const latestDay = dates[0] ? loadDay(index, ministry!, dates[0]) : [];
 const timeseries = loadTimeseries(ministry!);
+const indicators = loadIndicators(ministry!);
 
 // hero KPIs: latest value + delta per series (max 4)
-const kpis = (timeseries?.series ?? []).slice(0, 4).map((s) => {
-  const last = s.points[s.points.length - 1] ?? null;
-  const prev = s.points.length > 1 ? s.points[s.points.length - 2]! : null;
-  return {
-    metric: s.name,
-    unit: s.unit,
-    value: last?.value ?? null,
-    delta: last && prev ? last.value - prev.value : null,
-  };
-});
-
 // tabs: publications grouped by type
 const publications = allPublications(index, ministry!);
 const TAB_ORDER: [string, string][] = [
   ["analysis", "Анализи"],
   ["weekly_report", "Седмични"],
-  ["news_digest", "Дайджести"],
+  ["event_analysis", "Документи"],
   ["correction", "Поправки"],
 ];
 const tabs = TAB_ORDER.map(([type, label]) => ({
@@ -63,10 +55,7 @@ if (otherPubs.length > 0) {
   tabs.push({ type: "other", label: "Други", items: otherPubs });
 }
 
-const fmtValue = (v: number): string =>
-  Number.isInteger(v)
-    ? v.toLocaleString("bg-BG")
-    : v.toLocaleString("bg-BG", { maximumFractionDigits: 2 });
+
 ---
 
 <Base title={name}>
@@ -87,26 +76,18 @@ const fmtValue = (v: number): string =>
         )}
       </div>
     </div>
-    {kpis.length > 0 && (
-      <div class="kpi-row">
-        {kpis.map((kpi) => (
-          <div class="kpi">
-            <span class="kpi-metric">{kpi.metric}</span>
-            <span class="kpi-value">
-              {kpi.value !== null ? fmtValue(kpi.value) : "—"}
-              <span class="kpi-unit">{kpi.unit}</span>
-            </span>
-            {kpi.delta !== null && (
-              <span class="kpi-delta muted">
-                {kpi.delta > 0 ? "▲" : kpi.delta < 0 ? "▼" : "→"}
-                {" "}{fmtValue(Math.abs(kpi.delta))}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-    )}
   </header>
+
+  <section aria-labelledby="board-title">
+    <h2 id="board-title" class="section-title">Индикатори — официални данни</h2>
+    <IndicatorBoard indicators={indicators} />
+    {indicators.length > 0 && (
+      <p class="muted csv-link">
+        <a href={`/danni/${ministry}.csv`} download>Свали сериите (CSV)</a> ·
+        <a href={`/danni/${ministry}.json`}>JSON</a>
+      </p>
+    )}
+  </section>
 
   {timeseries && timeseries.series.length > 0 && (
     <TimeseriesCharts timeseries={timeseries} />

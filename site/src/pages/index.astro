@@ -1,13 +1,15 @@
 ---
 import Base from "../layouts/Base.astro";
+import IndicatorBoard from "../components/IndicatorBoard.astro";
 import {
   allPublications,
   initials,
   loadCabinet,
   loadIndex,
+  loadIndicators,
   loadLatest,
-  loadTimeseries,
   ministryName,
+  publicationsOfType,
   type Publication,
 } from "../lib/published";
 
@@ -19,59 +21,32 @@ const cabinet = loadCabinet(index).map((member) => ({
 const active = cabinet.filter((m) => m.enabled || m.latest);
 const preparing = cabinet.filter((m) => !m.enabled && !m.latest);
 
-// --- key indicators: latest point + delta per active ministry's series ----
-interface Kpi {
-  ministry: string;
-  slug: string;
-  metric: string;
-  unit: string;
-  value: number;
-  delta: number | null;
-}
-const kpis: Kpi[] = [];
-for (const member of active) {
-  const ts = loadTimeseries(member.slug);
-  for (const series of ts?.series ?? []) {
-    const points = series.points;
-    if (points.length === 0) continue;
-    const last = points[points.length - 1]!;
-    const prev = points.length > 1 ? points[points.length - 2]! : null;
-    kpis.push({
-      ministry: member.name,
-      slug: member.slug,
-      metric: series.name,
-      unit: series.unit,
-      value: last.value,
-      delta: prev ? last.value - prev.value : null,
-    });
-  }
-}
-const kpiBand = kpis.slice(0, 8);
+// --- Bulgaria in data: the tier-1 indicators of every active ministry -------
+const indicators = active.flatMap((m) => loadIndicators(m.slug));
+const nameOf = (id: string): string | null => ministryName(index, id.split(".")[0]!);
+
+// --- analyses of official documents (tier 2) --------------------------------
+const documentAnalyses = publicationsOfType(index, "event_analysis").slice(0, 6);
 
 // --- active crisis briefs (visible, not sensational) ----------------------
-const recentPubs: Publication[] = active.flatMap((m) =>
-  allPublications(index, m.slug),
-);
+const recentPubs: Publication[] = active.flatMap((m) => allPublications(index, m.slug));
 const crisisBriefs = recentPubs
   .filter((p) => p.type === "crisis_brief" && p.report)
   .slice(0, 3);
 
-// --- latest reports strip --------------------------------------------------
+// --- latest data analyses ----------------------------------------------------
 const latestReports = recentPubs
-  .filter((p) => p.report && p.type !== "crisis_brief")
+  .filter((p) => p.report && !["crisis_brief", "event_analysis"].includes(p.type))
   .sort((a, b) => b.date.localeCompare(a.date))
   .slice(0, 6);
-
-const fmtValue = (v: number): string =>
-  Number.isInteger(v) ? v.toLocaleString("bg-BG") : v.toLocaleString("bg-BG", { maximumFractionDigits: 2 });
 ---
 
-<Base title="Състоянието на България днес" banner={true}>
-  <h1>Състоянието на България днес</h1>
+<Base title="България в данни" banner={true}>
+  <h1>България в данни</h1>
   <p class="lead">
-    Всяко министерство е AI агент, който чете публични данни — статистика,
-    новини, отворени данни — и публикува проверени, цитирани анализи на
-    български.
+    Състоянието на държавата по ОФИЦИАЛНИ данни — НСИ, БНБ, Евростат, МФ и
+    официални документи. Числата се изчисляват от програмен код директно от
+    първоизточника; AI министрите само ги тълкуват, с цитиран източник.
   </p>
 
   {crisisBriefs.length > 0 && (
@@ -86,33 +61,33 @@ const fmtValue = (v: number): string =>
     </section>
   )}
 
-  {kpiBand.length > 0 && (
-    <section aria-label="Ключови индикатори" class="kpi-band">
-      {kpiBand.map((kpi) => (
-        <a class="kpi card" href={`/${kpi.slug}/`}>
-          <span class="kpi-metric">{kpi.metric}</span>
-          <span class="kpi-value">
-            {fmtValue(kpi.value)}
-            <span class="kpi-unit">{kpi.unit}</span>
-          </span>
-          {kpi.delta !== null && (
-            <span
-              class="kpi-delta"
-              class:list={[kpi.delta > 0 ? "up" : kpi.delta < 0 ? "down" : ""]}
-            >
-              {kpi.delta > 0 ? "▲" : kpi.delta < 0 ? "▼" : "→"}
-              {" "}{fmtValue(Math.abs(kpi.delta))} спрямо предишния период
+  <section aria-labelledby="data-title">
+    <h2 id="data-title" class="section-title">Ключови индикатори</h2>
+    <IndicatorBoard indicators={indicators} ministryLabel={nameOf} />
+  </section>
+
+  <section aria-labelledby="docs-title">
+    <h2 id="docs-title" class="section-title">Анализи на официални документи</h2>
+    {documentAnalyses.length === 0 ? (
+      <div class="card"><p class="muted">Още няма анализирани официални документи.</p></div>
+    ) : (
+      <div class="reports-grid">
+        {documentAnalyses.map((pub) => (
+          <a class="card report-card" href={`/${pub.slug}/${pub.date}/`}>
+            <span class="muted report-meta">
+              {ministryName(index, pub.slug)} · {pub.date}
             </span>
-          )}
-          <span class="muted kpi-ministry">{kpi.ministry}</span>
-        </a>
-      ))}
-    </section>
-  )}
+            <span class="report-title">{pub.report!.title}</span>
+            <span class="muted report-summary">{pub.report!.summary}</span>
+          </a>
+        ))}
+      </div>
+    )}
+  </section>
 
   {latestReports.length > 0 && (
     <section aria-labelledby="latest-title">
-      <h2 id="latest-title" class="section-title">Последни отчети</h2>
+      <h2 id="latest-title" class="section-title">Последни анализи на данните</h2>
       <div class="reports-grid">
         {latestReports.map((pub) => (
           <a class="card report-card" href={`/${pub.slug}/${pub.date}/`}>

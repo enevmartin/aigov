@@ -1,21 +1,6 @@
 {
-  "ministries": {
-    "finance": [
-      {
-        "date": "2026-07-20",
-        "types": {
-          "news_digest": [
-            "aggregates.json",
-            "news.json",
-            "report.md"
-          ]
-        }
-      }
-    ]
-  },
-  "names": {
-    "finance": "Министерство на финансите"
-  },
+  "ministries": {},
+  "names": {},
   "cabinet": [
     {
       "slug": "finance",

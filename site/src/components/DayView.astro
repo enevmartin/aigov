@@ -1,13 +1,12 @@
 ---
-/** One publication of one ministry: report, charts, news, signals. */
-import { TYPE_LABELS, type Publication } from "../lib/published";
+/** One publication: the analysis, the official document, the tier-1 data it used. */
+import { fmtNumber, TYPE_LABELS, type Publication } from "../lib/published";
 
 interface Props {
   day: Publication;
   names?: Record<string, string>;
 }
 const { day, names = {} } = Astro.props;
-const chartData = JSON.stringify(day.aggregates?.series ?? []);
 const confidenceLabel: Record<string, string> = {
   low: "ниска увереност",
   medium: "средна увереност",
@@ -59,21 +58,16 @@ const confidenceLabel: Record<string, string> = {
     )}
   </header>
 
-  {day.aggregates && day.aggregates.series.length > 0 && (
-    <section class="charts card">
-      <h2>Данните</h2>
-      <div class="chart-grid" data-charts={chartData}>
-        {day.aggregates.series.map((series, i) => (
-          <figure>
-            <div class="chart" data-chart-index={i}></div>
-            <figcaption class="muted">
-              {series.name} ({series.unit}) · източник:
-              <a href={series.source.url} rel="noopener">{series.source.title}</a>,
-              извлечено {series.source.retrieved}
-            </figcaption>
-          </figure>
-        ))}
-      </div>
+  {day.report?.document && (
+    <section class="card document-card">
+      <h2>Официалният документ</h2>
+      <p>
+        <a href={day.report.document.url} rel="noopener">{day.report.document.title}</a>
+      </p>
+      <p class="muted">
+        {day.report.document.kind} · {day.report.document.publisher} · извлечен
+        {" "}{day.report.document.retrieved} · sha256 <code>{day.report.document.sha256.slice(0, 12)}…</code>
+      </p>
     </section>
   )}
 
@@ -98,21 +92,27 @@ const confidenceLabel: Record<string, string> = {
     </section>
   )}
 
-  {day.news && (
-    <section class="news card">
-      <h2>Новини на деня</h2>
-      <ul class="news-list">
-        {day.news.items.map((item) => (
-          <li>
-            <p class="news-title">{item.title}</p>
-            <p class="muted">{item.summary}</p>
-            <p class="news-source">
-              <a href={item.source.url} rel="noopener">{item.source.title}</a>
-              · извлечено {item.source.retrieved}
-            </p>
-          </li>
-        ))}
-      </ul>
+  {day.indicators.length > 0 && (
+    <section class="card used-data">
+      <h2>Официални данни, използвани в анализа</h2>
+      <table>
+        <thead>
+          <tr><th>Индикатор</th><th>Стойност</th><th>Данни към</th><th>Източник</th></tr>
+        </thead>
+        <tbody>
+          {day.indicators.map((ind) => (
+            <tr>
+              <td>{ind.name}{ind.stale && <span class="tag stale-tag">остарял</span>}</td>
+              <td>{fmtNumber(ind.value)} {ind.unit}</td>
+              <td>{ind.period}</td>
+              <td><a href={ind.source_page} rel="noopener">{ind.publisher}</a></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p class="muted">
+        Числата в анализа са изчислени от програмен код от тези източници — не от модела.
+      </p>
     </section>
   )}
 

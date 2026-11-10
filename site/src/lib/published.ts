@@ -2,13 +2,14 @@
  * The site's ONLY data access layer: build-time reads of ../published/.
  * No APIs, no databases, no core imports — invariant #2 of the constitution.
  *
- * Layout: published/{ministry}/{date}/{type}/report.md|aggregates.json|...
+ * Layout: published/{ministry}/{date}/{type}/report.md|indicators.json|...
+ *         published/{ministry}/indicators.json (latest tier-1 values, чл. 8)
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import matter from "gray-matter";
-import { marked } from "marked";
+import { Marked } from "marked";
 
 const PUBLISHED_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -55,6 +56,15 @@ export interface ReportMeta {
   contributors?: string[];
   /** correction only */
   corrects?: { ministry: string; date: string; type?: string | null };
+  /** event_analysis only: the tier-2 official document */
+  document?: {
+    url: string;
+    title: string;
+    publisher: string;
+    kind: string;
+    retrieved: string;
+    sha256: string;
+  };
 }
 
 export interface CorrectionLink {
@@ -78,19 +88,6 @@ export interface Aggregates {
   series: Series[];
 }
 
-export interface NewsItem {
-  title: string;
-  summary: string;
-  source: Source;
-  published?: string | null;
-}
-
-export interface NewsDigest {
-  ministry: string;
-  date: string;
-  items: NewsItem[];
-}
-
 export interface SignalStats {
   ministry: string;
   date: string;
@@ -106,10 +103,31 @@ export interface Publication {
   type: string;
   report: ReportMeta | null;
   reportHtml: string | null;
-  aggregates: Aggregates | null;
-  news: NewsDigest | null;
+  indicators: IndicatorSummary[];
   signals: SignalStats | null;
   correctedBy: CorrectionLink[];
+}
+
+/** One tier-1 indicator as computed by the Python collectors (чл. 8). */
+export interface IndicatorSummary {
+  id: string;
+  name: string;
+  unit: string;
+  frequency: string;
+  period: string;
+  value: number;
+  previous_period: string | null;
+  previous: number | null;
+  change: number | null;
+  change_pct: number | null;
+  year_ago: number | null;
+  yoy_change: number | null;
+  trend: { period: string; value: number }[];
+  stale: boolean;
+  source_url: string;
+  source_page: string;
+  publisher: string;
+  collected_at: string;
 }
 
 export interface TimeseriesPoint {
@@ -178,7 +196,7 @@ export interface SessionRecord {
 /** Bulgarian labels for publication types, shared by every page. */
 export const TYPE_LABELS: Record<string, string> = {
   analysis: "Анализ",
-  news_digest: "Дневен дайджест",
+  event_analysis: "Анализ на официален документ",
   weekly_report: "Седмичен отчет",
   crisis_brief: "Извънреден брифинг",
   joint_report: "Съвместен доклад",
@@ -242,7 +260,7 @@ export function loadPublication(slug: string, date: string, type: string): Publi
   if (fs.existsSync(reportPath)) {
     const parsed = matter(fs.readFileSync(reportPath, "utf-8"));
     report = parsed.data as ReportMeta;
-    reportHtml = marked.parse(parsed.content, { async: false }) as string;
+    reportHtml = renderMarkdown(parsed.content);
   }
 
   const correctedBy = [
@@ -260,8 +278,7 @@ export function loadPublication(slug: string, date: string, type: string): Publi
     type,
     report,
     reportHtml,
-    aggregates: readJson<Aggregates>(path.join(dir, "aggregates.json")),
-    news: readJson<NewsDigest>(path.join(dir, "news.json")),
+    indicators: readJson<IndicatorSummary[]>(path.join(dir, "indicators.json")) ?? [],
     signals: readJson<SignalStats>(path.join(dir, "signals.json")),
     correctedBy,
   };
@@ -283,7 +300,7 @@ const LATEST_PREFERENCE = [
   "analysis",
   "weekly_report",
   "joint_report",
-  "news_digest",
+  "event_analysis",
   "crisis_brief",
   "plan",
   "correction",
@@ -302,6 +319,63 @@ export function loadLatest(index: PublishedIndex, slug: string): Publication | n
     (a, b) => LATEST_PREFERENCE.indexOf(a.type) - LATEST_PREFERENCE.indexOf(b.type),
   );
   return pool[0]!;
+}
+
+/** Latest tier-1 values of one ministry (published/{slug}/indicators.json). */
+export function loadIndicators(slug: string): IndicatorSummary[] {
+  return readJson<IndicatorSummary[]>(path.join(PUBLISHED_ROOT, slug, "indicators.json")) ?? [];
+}
+
+/** Every publication of a type across the cabinet, newest first. */
+export function publicationsOfType(index: PublishedIndex, type: string): Publication[] {
+  return Object.keys(index.ministries)
+    .flatMap((slug) => allPublications(index, slug))
+    .filter((p) => p.type === type && p.report)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/**
+ * Markdown from a model is UNTRUSTED (AUDIT-2026-11 F-01): raw HTML is
+ * escaped, never rendered; links/images keep only http(s), relative or
+ * anchor targets.
+ */
+const SAFE_URL = /^(https?:\/\/|\/|#)/i;
+const safeMarked = new Marked({
+  renderer: {
+    html(html: string): string {
+      return escapeHtml(html);
+    },
+  },
+  walkTokens(token) {
+    if ((token.type === "link" || token.type === "image") && !SAFE_URL.test(token.href)) {
+      token.href = "#";
+    }
+  },
+});
+
+export function renderMarkdown(markdown: string): string {
+  return safeMarked.parse(markdown, { async: false }) as string;
+}
+
+export function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** JSON safe inside <script> (no "</script>" breakout, AUDIT F-01). */
+export function safeJson(value: unknown): string {
+  return JSON.stringify(value)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026");
+}
+
+/** Bulgarian number format: 1234.5 -> "1 234,5". */
+export function fmtNumber(v: number): string {
+  return v.toLocaleString("bg-BG", { maximumFractionDigits: 2 });
 }
 
 /** Full historical series for the interactive charts. */
